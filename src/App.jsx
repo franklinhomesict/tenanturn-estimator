@@ -88,7 +88,7 @@ const fmtD = n => "$" + Number(n).toLocaleString("en-US",{minimumFractionDigits:
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;700;800&family=Barlow:wght@400;500;600&display=swap');
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-:root{--bg:#111;--s1:#1c1c1c;--s2:#242424;--border:#2a2a2a;--y:#f5c518;--y2:#c9a000;--text:#f2ede5;--muted:#777;--red:#e05252;--green:#52c077;}
+:root{--bg:#111;--s1:#1c1c1c;--s2:#242424;--border:#2a2a2a;--y:#f5c518;--y2:#c9a000;--text:#f2ede5;--muted:#bbb;--red:#e05252;--green:#52c077;}
 body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;overscroll-behavior:none;}
 .app{max-width:430px;margin:0 auto;min-height:100svh;display:flex;flex-direction:column;}
 .hdr{background:var(--bg);border-bottom:2px solid var(--y);padding:11px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:20;}
@@ -105,9 +105,9 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;over
 .btn-y{background:var(--y);color:#000;border:none;border-radius:10px;padding:15px;font-size:16px;font-weight:700;font-family:'Barlow Condensed',sans-serif;letter-spacing:1.5px;text-transform:uppercase;width:100%;cursor:pointer;transition:background .12s;}
 .btn-y:hover{background:var(--y2);}
 .btn-y:disabled{background:#333;color:var(--muted);cursor:not-allowed;}
-.btn-ghost{background:none;border:1.5px solid var(--border);border-radius:10px;padding:13px;font-size:14px;color:var(--muted);font-family:'Barlow',sans-serif;width:100%;cursor:pointer;text-align:left;}
+.btn-ghost{background:none;border:1.5px solid var(--border);border-radius:10px;padding:13px;font-size:15px;color:var(--text);font-family:'Barlow',sans-serif;width:100%;cursor:pointer;text-align:left;font-weight:500;}
 .btn-ghost:hover{border-color:var(--y);color:var(--y);}
-.btn-sm{background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:11px;color:var(--muted);font-family:'Barlow',sans-serif;cursor:pointer;}
+.btn-sm{background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:11px;color:var(--text);font-family:'Barlow',sans-serif;cursor:pointer;font-weight:500;}
 .btn-sm:hover{border-color:var(--y);color:var(--y);}
 .room-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
 .room-chip{background:var(--s1);border:1.5px solid var(--border);border-radius:10px;padding:13px 10px;font-size:13px;font-weight:600;cursor:pointer;text-align:center;color:var(--text);font-family:'Barlow',sans-serif;transition:all .12s;}
@@ -133,7 +133,7 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;over
 .search-field:focus{border-color:var(--y);}
 .cat-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;}
 .cat-tabs::-webkit-scrollbar{display:none;}
-.tab{background:var(--s1);border:1.5px solid var(--border);border-radius:20px;padding:7px 14px;font-size:11px;font-weight:600;white-space:nowrap;cursor:pointer;color:var(--muted);font-family:'Barlow',sans-serif;text-transform:uppercase;}
+.tab{background:var(--s1);border:1.5px solid var(--border);border-radius:20px;padding:7px 14px;font-size:11px;font-weight:600;white-space:nowrap;cursor:pointer;color:var(--text);font-family:'Barlow',sans-serif;text-transform:uppercase;}
 .tab.on{background:var(--y);border-color:var(--y);color:#000;}
 .cat-item{background:var(--s1);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;}
 .cat-item:hover,.cat-item:active{border-color:var(--y);}
@@ -158,7 +158,7 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;over
 .calc-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
 .calc-num{font-family:'Barlow Condensed',sans-serif;font-size:20px;margin-top:2px;}
 .sh-btns{display:flex;gap:10px;margin-top:14px;}
-.btn-cancel{background:var(--s2);border:1.5px solid var(--border);border-radius:10px;padding:14px;font-size:14px;color:var(--muted);font-family:'Barlow',sans-serif;flex:1;cursor:pointer;}
+.btn-cancel{background:var(--s2);border:1.5px solid var(--border);border-radius:10px;padding:14px;font-size:14px;color:var(--text);font-family:'Barlow',sans-serif;flex:1;cursor:pointer;font-weight:500;}
 .tot-bar{background:var(--s1);border:1.5px solid var(--y);border-radius:12px;padding:14px 16px;}
 .tot-top{display:flex;justify-content:space-between;align-items:flex-end;}
 .tot-label{font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;}
@@ -167,12 +167,7 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;over
 .markup-global{background:var(--s2);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px;}
 .markup-pct{font-family:'Barlow Condensed',sans-serif;font-size:14px;color:var(--y);}
 .div{height:1px;background:var(--border);}
-.sec{font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;font-weight:600;}
-.photo-strip{display:flex;gap:8px;overflow-x:auto;padding:4px 0;scrollbar-width:none;}
-.photo-strip::-webkit-scrollbar{display:none;}
-.photo-thumb{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1.5px solid var(--border);flex-shrink:0;}
-.photo-add{width:64px;height:64px;border:1.5px dashed var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted);font-size:22px;flex-shrink:0;background:var(--s2);}
-.photo-add:hover{border-color:var(--y);color:var(--y);}
+.sec{font-size:10px;color:var(--text);letter-spacing:2px;text-transform:uppercase;font-weight:700;}
 .notes-field{background:var(--s2);border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--text);width:100%;font-family:'Barlow',sans-serif;outline:none;resize:none;min-height:60px;}
 .notes-field:focus{border-color:var(--y);}
 .no-price-banner{font-size:11px;color:var(--red);background:#2a1515;border:1px solid #e05252;border-radius:6px;padding:7px 12px;text-align:center;margin-bottom:10px;}
@@ -211,8 +206,6 @@ export default function App() {
   const [showCustom, setShowCustom] = useState(false);
   const [custom, setCustom] = useState({ name:"", cost:"", sell:"", qty:"", unit:"each" });
   const [editingItem, setEditingItem] = useState(null);
-  const [photoRoomIdx, setPhotoRoomIdx] = useState(null);
-  const photoRef = useRef(null);
 
   const active = rooms[activeIdx];
   const grandSell = rooms.reduce((s,r) => s + r.items.reduce((a,i) => a + i.sell * i.qty, 0), 0);
@@ -239,7 +232,7 @@ export default function App() {
   }
 
   function addRoom(name) {
-    const r = { name, items:[], photos:[], notes:"", id:Date.now() };
+    const r = { name, items:[], driveLink:"", notes:"", id:Date.now() };
     const next = [...rooms, r];
     setRooms(next); setActiveIdx(next.length - 1); setScreen("room");
   }
@@ -285,14 +278,6 @@ export default function App() {
     setCustom({ name:"", cost:"", sell:"", qty:"", unit:"each" }); setShowCustom(false);
   }
 
-  function handlePhoto(e) {
-    const file = e.target.files[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => setRooms(rooms.map((r,i) => i === photoRoomIdx ? { ...r, photos:[...r.photos, ev.target.result] } : r));
-    reader.readAsDataURL(file);
-    e.target.value = "";
-  }
-
   function buildEmail() {
     let t = `TENANTURN ESTIMATE\n${address}\n\n`;
     rooms.forEach(r => {
@@ -302,7 +287,7 @@ export default function App() {
       t += `-- ${r.name.toUpperCase()} -- Sell: ${fmt(rs)} | Cost: ${fmt(rc)}\n`;
       r.items.forEach(i => { t += `  ${i.name}: ${i.qty} ${UNIT_LABELS[i.unit]||i.unit} | Cost ${fmt(i.cost*i.qty)} -> Sell ${fmt(i.sell*i.qty)} (${i.markup}x)\n`; });
       if (r.notes) t += `  Notes: ${r.notes}\n`;
-      if (r.photos.length) t += `  Photos: ${r.photos.length} attached\n`;
+      if (r.driveLink) t += `  Photos: ${r.driveLink}\n`;
       t += "\n";
     });
     if (notes) t += `NOTES: ${notes}\n\n`;
@@ -349,7 +334,6 @@ export default function App() {
   return (
     <>
       <style>{CSS}</style>
-      <input ref={photoRef} type="file" accept="image/*" capture="environment" style={{display:"none"}} onChange={handlePhoto} />
       <div className="app">
 
         <div className="hdr">
@@ -418,7 +402,7 @@ export default function App() {
                   <div className="rc-head">
                     <div>
                       <div className="rc-name">{room.name}</div>
-                      <div className="rc-meta">{room.items.length} items{room.photos.length ? ` · ${room.photos.length} photos` : ""}</div>
+                      <div className="rc-meta">{room.items.length} items{room.driveLink ? " · has photos" : ""}</div>
                     </div>
                     <div style={{display:"flex",alignItems:"flex-start",gap:8}}>
                       <div style={{textAlign:"right"}}>
@@ -504,11 +488,9 @@ export default function App() {
               </div>
             )}
             <button className="btn-y" onClick={() => { setSearch(""); setCatTab("Paint"); setScreen("catalog"); }}>+ ADD FROM CATALOG</button>
-            <div className="sec">Photos</div>
-            <div className="photo-strip">
-              <div className="photo-add" onClick={() => { setPhotoRoomIdx(activeIdx); photoRef.current.click(); }}>📷</div>
-              {active.photos.map((p,i) => <img key={i} className="photo-thumb" src={p} alt="" />)}
-            </div>
+            <div className="sec">Google Drive Link (optional)</div>
+            <input className="field" placeholder="Paste photo folder link here..." value={active.driveLink}
+              onChange={e => setRooms(rooms.map((r,i) => i===activeIdx ? {...r,driveLink:e.target.value} : r))} />
             <div className="sec">Room Notes</div>
             <textarea className="notes-field" placeholder="Notes for this room..." value={active.notes}
               onChange={e => setRooms(rooms.map((r,i) => i===activeIdx ? {...r,notes:e.target.value} : r))} />
@@ -603,7 +585,7 @@ export default function App() {
                     </div>
                   </div>
                 ))}
-                {room.photos.length > 0 && <div style={{fontSize:11,color:"var(--muted)",paddingTop:5}}>📷 {room.photos.length} photo{room.photos.length>1?"s":""}</div>}
+                {room.driveLink && <div style={{fontSize:11,color:"var(--muted)",paddingTop:5,wordBreak:"break-all"}}>📷 Photos: {room.driveLink}</div>}
                 {room.notes && <div style={{fontSize:11,color:"var(--muted)",paddingTop:4,fontStyle:"italic"}}>"{room.notes}"</div>}
               </div>
             ))}
