@@ -310,10 +310,31 @@ export default function App() {
     return t;
   }
 
-  function handleSend() {
-    const subject = encodeURIComponent(`Tenanturn Estimate - ${address}`);
-    window.open(`mailto:ian@franklinhomesict.com?subject=${subject}&body=${encodeURIComponent(buildEmail())}`, "_blank");
-    setScreen("sent");
+  async function handleSend() {
+    const subject = `Tenanturn Estimate - ${address}`;
+    const body = buildEmail();
+    
+    // Try native share first (iOS/Android) - bypasses iOS Mail outbox bug
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: subject,
+          text: `Send this to: ian@franklinhomesict.com\n\n${body}`,
+        });
+        setScreen("sent");
+      } catch (err) {
+        // User cancelled share sheet - don't show "sent" screen
+        if (err.name !== 'AbortError') {
+          // Share failed for other reason - fall back to mailto
+          window.location.href = `mailto:ian@franklinhomesict.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+          setScreen("sent");
+        }
+      }
+    } else {
+      // Desktop - use mailto
+      window.location.href = `mailto:ian@franklinhomesict.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      setScreen("sent");
+    }
   }
 
   const filteredCatalog = search.trim()
