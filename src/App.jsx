@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 const CATALOG = [
   { id:"p1",  cat:"Paint",       name:"Level 1 Paint - Walls Only",       unit:"sqft", cost:1.19  },
@@ -94,25 +94,30 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;over
 .hdr{background:var(--bg);border-bottom:2px solid var(--y);padding:11px 16px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:20;}
 .logo{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;letter-spacing:3px;color:var(--y);line-height:1;text-transform:uppercase;}
 .sub{font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;font-weight:500;}
-.back{background:none;border:none;color:var(--y);font-size:20px;cursor:pointer;padding:4px 8px 4px 0;line-height:1;}
+.back{background:none;border:none;color:var(--y);font-size:20px;cursor:pointer;padding:4px 8px 4px 0;line-height:1;transition:transform 0.15s;}
+.back:active{transform:scale(0.95);}
 .hdr-right{margin-left:auto;text-align:right;}
-.hdr-sell{font-family:'Barlow Condensed',sans-serif;font-size:18px;color:var(--y);font-weight:700;}
+.hdr-sell{font-family:'Barlow Condensed',sans-serif;font-size:18px;color:var(--y);font-weight:700;transition:all 0.3s;}
+.hdr-sell.pulse{animation:pulse 0.4s ease-out;}
 .hdr-cost{font-size:10px;color:var(--muted);}
-.scr{flex:1;padding:16px;display:flex;flex-direction:column;gap:14px;padding-bottom:100px;}
+.scr{flex:1;padding:16px;display:flex;flex-direction:column;gap:14px;padding-bottom:120px;}
 .big{font-family:'Barlow Condensed',sans-serif;font-size:48px;font-weight:800;letter-spacing:2px;color:var(--y);line-height:.95;text-transform:uppercase;}
-.field{background:var(--s1);border:1.5px solid var(--border);border-radius:10px;padding:14px 16px;font-size:17px;color:var(--text);width:100%;font-family:'Barlow',sans-serif;outline:none;}
+.field{background:var(--s1);border:1.5px solid var(--border);border-radius:10px;padding:14px 16px;font-size:17px;color:var(--text);width:100%;font-family:'Barlow',sans-serif;outline:none;transition:border-color 0.2s;}
 .field:focus{border-color:var(--y);}
-.btn-y{background:var(--y);color:#000;border:none;border-radius:10px;padding:15px;font-size:16px;font-weight:700;font-family:'Barlow Condensed',sans-serif;letter-spacing:1.5px;text-transform:uppercase;width:100%;cursor:pointer;transition:background .12s;}
+.btn-y{background:var(--y);color:#000;border:none;border-radius:10px;padding:15px;font-size:16px;font-weight:700;font-family:'Barlow Condensed',sans-serif;letter-spacing:1.5px;text-transform:uppercase;width:100%;cursor:pointer;transition:all 0.15s;}
 .btn-y:hover{background:var(--y2);}
+.btn-y:active{transform:scale(0.98);}
 .btn-y:disabled{background:#333;color:var(--muted);cursor:not-allowed;}
-.btn-ghost{background:none;border:1.5px solid var(--border);border-radius:10px;padding:13px;font-size:15px;color:var(--text);font-family:'Barlow',sans-serif;width:100%;cursor:pointer;text-align:left;font-weight:500;}
+.btn-ghost{background:none;border:1.5px solid var(--border);border-radius:10px;padding:13px;font-size:15px;color:var(--text);font-family:'Barlow',sans-serif;width:100%;cursor:pointer;text-align:left;font-weight:500;transition:all 0.2s;}
 .btn-ghost:hover{border-color:var(--y);color:var(--y);}
-.btn-sm{background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:11px;color:var(--text);font-family:'Barlow',sans-serif;cursor:pointer;font-weight:500;}
+.btn-ghost:active{transform:scale(0.98);}
+.btn-sm{background:var(--s2);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:11px;color:var(--text);font-family:'Barlow',sans-serif;cursor:pointer;font-weight:500;transition:all 0.15s;}
 .btn-sm:hover{border-color:var(--y);color:var(--y);}
+.btn-sm:active{transform:scale(0.95);}
 .room-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.room-chip{background:var(--s1);border:1.5px solid var(--border);border-radius:10px;padding:13px 10px;font-size:13px;font-weight:600;cursor:pointer;text-align:center;color:var(--text);font-family:'Barlow',sans-serif;transition:all .12s;}
-.room-chip:hover,.room-chip:active{border-color:var(--y);color:var(--y);background:#1e1a09;}
-.card{background:var(--s1);border:1.5px solid var(--border);border-radius:12px;padding:14px;}
+.room-chip{background:var(--s1);border:1.5px solid var(--border);border-radius:10px;padding:13px 10px;font-size:13px;font-weight:600;cursor:pointer;text-align:center;color:var(--text);font-family:'Barlow',sans-serif;transition:all 0.15s;}
+.room-chip:hover,.room-chip:active{border-color:var(--y);color:var(--y);background:#1e1a09;transform:scale(1.02);}
+.card{background:var(--s1);border:1.5px solid var(--border);border-radius:12px;padding:14px;animation:slideIn 0.3s ease-out;}
 .rc-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
 .rc-name{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;text-transform:uppercase;}
 .rc-sell{font-family:'Barlow Condensed',sans-serif;font-size:18px;color:var(--y);}
@@ -125,67 +130,108 @@ body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;over
 .iprices{text-align:right;flex-shrink:0;}
 .isell{font-family:'Barlow Condensed',sans-serif;font-size:14px;color:var(--y);}
 .icost{font-size:10px;color:var(--muted);}
-.del{background:none;border:none;color:var(--red);font-size:20px;cursor:pointer;line-height:1;padding:2px 4px;flex-shrink:0;}
-.add-btn{border:1.5px dashed var(--y);border-radius:8px;padding:10px;font-size:13px;color:var(--y);background:transparent;cursor:pointer;width:100%;font-family:'Barlow',sans-serif;font-weight:600;margin-top:10px;}
+.del{background:none;border:none;color:var(--red);font-size:20px;cursor:pointer;line-height:1;padding:2px 4px;flex-shrink:0;transition:transform 0.2s;}
+.del:active{transform:scale(1.2) rotate(10deg);}
+.add-btn{border:1.5px dashed var(--y);border-radius:8px;padding:10px;font-size:13px;color:var(--y);background:transparent;cursor:pointer;width:100%;font-family:'Barlow',sans-serif;font-weight:600;margin-top:10px;transition:all 0.2s;}
+.add-btn:hover{background:rgba(245,197,24,0.1);}
+.add-btn:active{transform:scale(0.98);}
 .search-wrap{position:relative;}
 .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none;}
-.search-field{background:var(--s1);border:1.5px solid var(--border);border-radius:10px;padding:12px 12px 12px 36px;font-size:15px;color:var(--text);width:100%;font-family:'Barlow',sans-serif;outline:none;}
+.search-field{background:var(--s1);border:1.5px solid var(--border);border-radius:10px;padding:12px 12px 12px 36px;font-size:15px;color:var(--text);width:100%;font-family:'Barlow',sans-serif;outline:none;transition:border-color 0.2s;}
 .search-field:focus{border-color:var(--y);}
 .cat-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;}
 .cat-tabs::-webkit-scrollbar{display:none;}
-.tab{background:var(--s1);border:1.5px solid var(--border);border-radius:20px;padding:7px 14px;font-size:11px;font-weight:600;white-space:nowrap;cursor:pointer;color:var(--text);font-family:'Barlow',sans-serif;text-transform:uppercase;}
+.tab{background:var(--s1);border:1.5px solid var(--border);border-radius:20px;padding:7px 14px;font-size:11px;font-weight:600;white-space:nowrap;cursor:pointer;color:var(--text);font-family:'Barlow',sans-serif;text-transform:uppercase;transition:all 0.15s;}
 .tab.on{background:var(--y);border-color:var(--y);color:#000;}
-.cat-item{background:var(--s1);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;}
-.cat-item:hover,.cat-item:active{border-color:var(--y);}
+.tab:active{transform:scale(0.95);}
+.cat-item{background:var(--s1);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:all 0.15s;}
+.cat-item:hover,.cat-item:active{border-color:var(--y);transform:scale(1.01);}
 .cat-item.no-price{border-color:var(--red);}
 .ci-name{font-size:14px;font-weight:600;}
 .ci-sub{font-size:11px;color:var(--muted);margin-top:2px;}
 .ci-cost{font-family:'Barlow Condensed',sans-serif;font-size:15px;color:var(--y);margin-left:12px;text-align:right;flex-shrink:0;}
 .ci-unit{font-size:10px;color:var(--muted);}
 .ci-no-price{font-size:11px;color:var(--red);font-weight:700;margin-left:12px;}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:50;display:flex;align-items:flex-end;}
-.sheet{background:var(--s1);border-top:2.5px solid var(--y);border-radius:20px 20px 0 0;padding:22px 18px 38px;width:100%;max-width:430px;margin:0 auto;max-height:90vh;overflow-y:auto;}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:50;display:flex;align-items:flex-end;animation:fadeIn 0.2s;}
+.sheet{background:var(--s1);border-top:2.5px solid var(--y);border-radius:20px 20px 0 0;padding:22px 18px 38px;width:100%;max-width:430px;margin:0 auto;max-height:90vh;overflow-y:auto;animation:slideUp 0.3s ease-out;}
 .sh-title{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;color:var(--y);text-transform:uppercase;margin-bottom:2px;}
 .sh-sub{font-size:12px;color:var(--muted);margin-bottom:14px;}
-.num-field{background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:14px;font-size:28px;text-align:center;color:var(--text);width:100%;font-family:'Barlow Condensed',sans-serif;outline:none;}
+.num-field{background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:14px;font-size:28px;text-align:center;color:var(--text);width:100%;font-family:'Barlow Condensed',sans-serif;outline:none;transition:border-color 0.2s;}
 .num-field:focus{border-color:var(--y);}
 .field-row{display:flex;align-items:center;gap:10px;background:var(--s2);border-radius:10px;padding:10px 14px;margin-top:8px;}
 .field-row-label{font-size:12px;color:var(--muted);flex:1;}
-.mini-input{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:16px;color:var(--text);width:80px;font-family:'Barlow Condensed',sans-serif;outline:none;text-align:center;}
+.mini-input{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:16px;color:var(--text);width:80px;font-family:'Barlow Condensed',sans-serif;outline:none;text-align:center;transition:border-color 0.2s;}
 .mini-input:focus{border-color:var(--y);}
 .calc-box{background:var(--s2);border-radius:10px;padding:12px 14px;margin-top:10px;display:flex;justify-content:space-around;}
 .calc-col{text-align:center;}
 .calc-lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
 .calc-num{font-family:'Barlow Condensed',sans-serif;font-size:20px;margin-top:2px;}
 .sh-btns{display:flex;gap:10px;margin-top:14px;}
-.btn-cancel{background:var(--s2);border:1.5px solid var(--border);border-radius:10px;padding:14px;font-size:14px;color:var(--text);font-family:'Barlow',sans-serif;flex:1;cursor:pointer;font-weight:500;}
+.btn-cancel{background:var(--s2);border:1.5px solid var(--border);border-radius:10px;padding:14px;font-size:14px;color:var(--text);font-family:'Barlow',sans-serif;flex:1;cursor:pointer;font-weight:500;transition:all 0.15s;}
+.btn-cancel:active{transform:scale(0.98);}
 .tot-bar{background:var(--s1);border:1.5px solid var(--y);border-radius:12px;padding:14px 16px;}
 .tot-top{display:flex;justify-content:space-between;align-items:flex-end;}
 .tot-label{font-size:11px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;}
 .tot-sell{font-family:'Barlow Condensed',sans-serif;font-size:40px;color:var(--y);line-height:1;}
 .tot-detail{font-size:12px;color:var(--muted);margin-top:6px;}
-.markup-global{background:var(--s2);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px;}
+.markup-global{background:var(--s2);border:2px solid var(--y);border-radius:10px;padding:14px;display:flex;align-items:center;gap:10px;box-shadow:0 0 20px rgba(245,197,24,0.15);}
+.markup-label{font-size:14px;color:var(--text);flex:1;font-weight:600;}
 .markup-pct{font-family:'Barlow Condensed',sans-serif;font-size:14px;color:var(--y);}
 .div{height:1px;background:var(--border);}
-.sec{font-size:10px;color:var(--text);letter-spacing:2px;text-transform:uppercase;font-weight:700;}
-.notes-field{background:var(--s2);border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--text);width:100%;font-family:'Barlow',sans-serif;outline:none;resize:none;min-height:60px;}
+.sec{font-size:12px;color:var(--text);letter-spacing:2px;text-transform:uppercase;font-weight:700;margin-bottom:4px;}
+.notes-field{background:var(--s2);border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--text);width:100%;font-family:'Barlow',sans-serif;outline:none;resize:none;min-height:60px;transition:border-color 0.2s;}
 .notes-field:focus{border-color:var(--y);}
 .no-price-banner{font-size:11px;color:var(--red);background:#2a1515;border:1px solid #e05252;border-radius:6px;padding:7px 12px;text-align:center;margin-bottom:10px;}
 .edit-strip{display:flex;gap:6px;align-items:center;margin-top:5px;flex-wrap:wrap;}
 .edit-label{font-size:11px;color:var(--muted);}
-.edit-input{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:13px;color:var(--text);width:65px;font-family:'Barlow Condensed',sans-serif;outline:none;text-align:center;}
+.edit-input{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:13px;color:var(--text);width:65px;font-family:'Barlow Condensed',sans-serif;outline:none;text-align:center;transition:border-color 0.2s;}
 .edit-input:focus{border-color:var(--y);}
 .custom-form{background:var(--s2);border:1.5px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;}
 .custom-row{display:flex;gap:8px;}
-.field-sm{background:var(--s1);border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px;color:var(--text);font-family:'Barlow',sans-serif;outline:none;flex:1;}
+.field-sm{background:var(--s1);border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-size:14px;color:var(--text);font-family:'Barlow',sans-serif;outline:none;flex:1;transition:border-color 0.2s;}
 .field-sm:focus{border-color:var(--y);}
 select.field-sm option{background:#1c1c1c;}
 .sent-wrap{display:flex;flex-direction:column;align-items:center;gap:18px;padding-top:60px;}
-.sent-icon{font-size:72px;}
+.sent-icon{font-size:72px;animation:scaleIn 0.5s ease-out;}
 .sent-title{font-family:'Barlow Condensed',sans-serif;font-size:52px;font-weight:800;color:var(--green);letter-spacing:3px;text-transform:uppercase;text-align:center;line-height:1;}
 .sent-body{text-align:center;color:var(--muted);font-size:14px;line-height:1.7;}
 .sent-sell{font-family:'Barlow Condensed',sans-serif;font-size:32px;color:var(--y);}
 .empty{color:var(--muted);font-size:13px;text-align:center;padding:24px 0;}
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--s1);border:1.5px solid var(--y);border-radius:10px;padding:12px 20px;font-size:14px;color:var(--text);z-index:100;animation:toastIn 0.3s ease-out;box-shadow:0 4px 20px rgba(0,0,0,0.5);}
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--y);border-radius:50%;animation:spin 0.6s linear infinite;display:inline-block;margin-right:8px;}
+.confetti{position:fixed;width:10px;height:10px;background:var(--y);z-index:200;pointer-events:none;animation:confettiFall 0.6s ease-out forwards;}
+.voice-btn{background:var(--s2);border:1.5px solid var(--y);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:var(--y);flex-shrink:0;transition:all 0.2s;margin-left:8px;}
+.voice-btn:hover{background:rgba(245,197,24,0.1);}
+.voice-btn:active{transform:scale(0.9);}
+.voice-btn.recording{animation:pulseVoice 1.5s infinite;}
+.notes-row{display:flex;gap:0;align-items:stretch;}
+.notes-field.with-voice{border-radius:8px 0 0 8px;border-right:none;}
+.voice-btn-wrapper{display:flex;}
+.voice-btn.attached{border-radius:0 8px 8px 0;border-left:none;}
+.footer{background:var(--bg);border-top:1px solid var(--border);padding:12px 16px;text-align:center;font-size:10px;color:var(--muted);position:fixed;bottom:0;left:0;right:0;z-index:10;}
+.warning-banner{background:#2a1515;border:1px solid var(--red);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--red);margin-bottom:14px;line-height:1.5;}
+.resume-card{background:var(--s1);border:1.5px solid var(--y);border-radius:12px;padding:16px;margin-bottom:14px;}
+.resume-title{font-size:14px;color:var(--text);font-weight:600;margin-bottom:4px;}
+.resume-detail{font-size:12px;color:var(--muted);margin-bottom:12px;}
+.resume-btns{display:flex;gap:8px;}
+.btn-resume{background:var(--y);color:#000;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:700;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;text-transform:uppercase;flex:1;cursor:pointer;transition:all 0.15s;}
+.btn-resume:active{transform:scale(0.98);}
+.btn-fresh{background:var(--s2);color:var(--text);border:1.5px solid var(--border);border-radius:8px;padding:10px;font-size:13px;font-weight:600;font-family:'Barlow',sans-serif;flex:1;cursor:pointer;transition:all 0.15s;}
+.btn-fresh:active{transform:scale(0.98);}
+.copy-btn{background:var(--s2);border:1.5px solid var(--border);border-radius:10px;padding:13px;font-size:14px;color:var(--text);font-family:'Barlow',sans-serif;width:100%;cursor:pointer;font-weight:500;transition:all 0.2s;text-align:center;}
+.copy-btn:hover{border-color:var(--y);color:var(--y);}
+.copy-btn:active{transform:scale(0.98);}
+.back-to-rooms{background:var(--y);color:#000;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:700;font-family:'Barlow Condensed',sans-serif;letter-spacing:1.5px;text-transform:uppercase;width:100%;cursor:pointer;transition:all 0.15s;margin-top:8px;box-shadow:0 2px 10px rgba(245,197,24,0.3);}
+.back-to-rooms:active{transform:scale(0.98);}
+@keyframes slideIn{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+@keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.05);}}
+@keyframes scaleIn{from{transform:scale(0.5);opacity:0;}to{transform:scale(1);opacity:1;}}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,20px);}to{opacity:1;transform:translate(-50%,0);}}
+@keyframes confettiFall{to{transform:translateY(100vh) rotate(360deg);opacity:0;}}
+@keyframes pulseVoice{0%,100%{box-shadow:0 0 0 0 rgba(245,197,24,0.7);}50%{box-shadow:0 0 0 8px rgba(245,197,24,0);}}
 `;
 
 export default function App() {
@@ -206,10 +252,90 @@ export default function App() {
   const [showCustom, setShowCustom] = useState(false);
   const [custom, setCustom] = useState({ name:"", cost:"", sell:"", qty:"", unit:"each" });
   const [editingItem, setEditingItem] = useState(null);
+  const [toast, setToast] = useState("");
+  const [prevTotal, setPrevTotal] = useState(0);
+  const [showResume, setShowResume] = useState(false);
+  const [savedData, setSavedData] = useState(null);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef(null);
 
   const active = rooms[activeIdx];
   const grandSell = rooms.reduce((s,r) => s + r.items.reduce((a,i) => a + i.sell * i.qty, 0), 0);
   const grandCost = rooms.reduce((s,r) => s + r.items.reduce((a,i) => a + i.cost * i.qty, 0), 0);
+
+  // LocalStorage auto-save
+  useEffect(() => {
+    if (address || rooms.length > 0) {
+      const data = { address, rooms, notes, globalMarkup, timestamp: Date.now() };
+      localStorage.setItem('tenanturn_draft', JSON.stringify(data));
+    }
+  }, [address, rooms, notes, globalMarkup]);
+
+  // Check for saved data on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('tenanturn_draft');
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        const age = Date.now() - data.timestamp;
+        if (age < 7 * 24 * 60 * 60 * 1000) { // 7 days
+          setSavedData(data);
+          setShowResume(true);
+        }
+      } catch (e) {}
+    }
+
+    // Warn about browser data clearing
+    const hasSeenWarning = localStorage.getItem('tenanturn_warning_seen');
+    if (!hasSeenWarning) {
+      localStorage.setItem('tenanturn_warning_seen', 'true');
+    }
+  }, []);
+
+  // Confetti on $100 milestones
+  useEffect(() => {
+    if (grandSell > 0 && grandSell !== prevTotal) {
+      const prevHundred = Math.floor(prevTotal / 100);
+      const currHundred = Math.floor(grandSell / 100);
+      if (currHundred > prevHundred) {
+        triggerConfetti();
+      }
+      setPrevTotal(grandSell);
+    }
+  }, [grandSell, prevTotal]);
+
+  function triggerConfetti() {
+    for (let i = 0; i < 30; i++) {
+      setTimeout(() => {
+        const c = document.createElement('div');
+        c.className = 'confetti';
+        c.style.left = Math.random() * 100 + '%';
+        c.style.animationDelay = Math.random() * 0.3 + 's';
+        c.style.background = `hsl(${45 + Math.random() * 20}, 100%, ${50 + Math.random() * 20}%)`;
+        document.body.appendChild(c);
+        setTimeout(() => c.remove(), 600);
+      }, i * 15);
+    }
+  }
+
+  function showToast(msg) {
+    setToast(msg);
+    setTimeout(() => setToast(""), 2000);
+  }
+
+  function resumeDraft() {
+    setAddress(savedData.address);
+    setRooms(savedData.rooms);
+    setNotes(savedData.notes || "");
+    setGlobalMarkup(savedData.globalMarkup || "1.6");
+    setShowResume(false);
+    showToast("Draft restored");
+  }
+
+  function startFresh() {
+    localStorage.removeItem('tenanturn_draft');
+    setShowResume(false);
+  }
 
   async function getLocation() {
     if (!navigator.geolocation) { setLocError("Geolocation not supported."); return; }
@@ -237,7 +363,13 @@ export default function App() {
     setRooms(next); setActiveIdx(next.length - 1); setScreen("room");
   }
 
-  function removeRoom(idx) { setRooms(rooms.filter((_,i) => i !== idx)); }
+  function removeRoom(idx) {
+    if (rooms[idx].items.length > 0) {
+      if (!confirm(`Delete ${rooms[idx].name} with ${rooms[idx].items.length} items?`)) return;
+    }
+    setRooms(rooms.filter((_,i) => i !== idx));
+    showToast("Room deleted");
+  }
 
   function startItem(item) {
     setPending(item); setMeas("");
@@ -252,6 +384,7 @@ export default function App() {
     const s = parseFloat((c * m).toFixed(2));
     setRooms(rooms.map((r,i) => i === activeIdx ? { ...r, items:[...r.items, { ...pending, qty:q, cost:c, sell:s, markup:m, iid:Date.now() }]} : r));
     setPending(null); setMeas(""); setPendingCost(""); setMarkup(globalMarkup);
+    showToast("Item added");
   }
 
   function updateItem(roomIdx, iid, fields) {
@@ -268,6 +401,7 @@ export default function App() {
 
   function removeItem(roomIdx, iid) {
     setRooms(rooms.map((r,i) => i === roomIdx ? { ...r, items: r.items.filter(it => it.iid !== iid) } : r));
+    showToast("Item removed");
   }
 
   function addCustomItem() {
@@ -276,6 +410,46 @@ export default function App() {
     const item = { id:"cust-"+Date.now(), cat:"Custom", name:custom.name, unit:custom.unit, cost:c, sell:s, markup:parseFloat((s/c).toFixed(2)), qty:q, iid:Date.now() };
     setRooms(rooms.map((r,i) => i === activeIdx ? { ...r, items:[...r.items, item]} : r));
     setCustom({ name:"", cost:"", sell:"", qty:"", unit:"each" }); setShowCustom(false);
+    showToast("Custom item added");
+  }
+
+  function copyFromLastRoom() {
+    if (rooms.length < 2 || activeIdx === 0) {
+      showToast("No previous room to copy from");
+      return;
+    }
+    const lastRoom = rooms[activeIdx - 1];
+    if (lastRoom.items.length === 0) {
+      showToast("Previous room has no items");
+      return;
+    }
+    const newItems = lastRoom.items.map(it => ({ ...it, iid: Date.now() + Math.random() }));
+    setRooms(rooms.map((r,i) => i === activeIdx ? { ...r, items: [...r.items, ...newItems] } : r));
+    showToast(`Copied ${newItems.length} items from ${lastRoom.name}`);
+  }
+
+  function startVoiceInput() {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      showToast("Voice input not supported");
+      return;
+    }
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+    
+    recognition.onstart = () => setIsListening(true);
+    recognition.onend = () => setIsListening(false);
+    recognition.onerror = () => { setIsListening(false); showToast("Voice input failed"); };
+    recognition.onresult = (e) => {
+      const transcript = e.results[0][0].transcript;
+      setRooms(rooms.map((r,i) => i===activeIdx ? {...r, notes: (r.notes ? r.notes + " " : "") + transcript} : r));
+      showToast("Voice added to notes");
+    };
+    
+    recognitionRef.current = recognition;
+    recognition.start();
   }
 
   function buildEmail() {
@@ -296,29 +470,45 @@ export default function App() {
   }
 
   async function handleSend() {
+    if (rooms.filter(r => r.items.length > 0).length === 0) {
+      showToast("Add items before sending");
+      return;
+    }
     const subject = `Tenanturn Estimate - ${address}`;
     const body = buildEmail();
     
-    // Try native share first (iOS/Android) - bypasses iOS Mail outbox bug
     if (navigator.share) {
       try {
         await navigator.share({
           title: subject,
           text: `Send this to: ian@franklinhomesict.com\n\n${body}`,
         });
+        localStorage.removeItem('tenanturn_draft');
         setScreen("sent");
       } catch (err) {
-        // User cancelled share sheet - don't show "sent" screen
         if (err.name !== 'AbortError') {
-          // Share failed for other reason - fall back to mailto
           window.location.href = `mailto:ian@franklinhomesict.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+          localStorage.removeItem('tenanturn_draft');
           setScreen("sent");
         }
       }
     } else {
-      // Desktop - use mailto
       window.location.href = `mailto:ian@franklinhomesict.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      localStorage.removeItem('tenanturn_draft');
       setScreen("sent");
+    }
+  }
+
+  function copyToClipboard() {
+    const text = buildEmail();
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast("Copied to clipboard");
+      }).catch(() => {
+        showToast("Copy failed - please use email");
+      });
+    } else {
+      showToast("Clipboard not supported");
     }
   }
 
@@ -358,7 +548,7 @@ export default function App() {
           </div>
           {["rooms","review"].includes(screen) && grandSell > 0 && (
             <div className="hdr-right">
-              <div className="hdr-sell">{fmt(grandSell)}</div>
+              <div className={`hdr-sell ${grandSell !== prevTotal ? 'pulse' : ''}`}>{fmt(grandSell)}</div>
               <div className="hdr-cost">cost {fmt(grandCost)}</div>
             </div>
           )}
@@ -366,12 +556,28 @@ export default function App() {
 
         {screen === "start" && (
           <div className="scr">
+            {showResume && savedData && (
+              <div className="resume-card">
+                <div className="resume-title">Resume draft?</div>
+                <div className="resume-detail">{savedData.address} · {fmt(savedData.rooms.reduce((s,r) => s + r.items.reduce((a,i) => a + i.sell * i.qty, 0), 0))}</div>
+                <div className="resume-btns">
+                  <button className="btn-resume" onClick={resumeDraft}>RESUME</button>
+                  <button className="btn-fresh" onClick={startFresh}>Start Fresh</button>
+                </div>
+              </div>
+            )}
+            {!localStorage.getItem('tenanturn_warning_seen') && (
+              <div className="warning-banner">
+                ⚠️ Don't clear your browser data or you'll lose in-progress estimates
+              </div>
+            )}
             <div>
               <div className="big">New<br />Walkthrough</div>
               <div style={{marginTop:6,fontSize:13,color:"var(--muted)"}}>Enter the property address</div>
             </div>
             <button className="btn-y" onClick={getLocation} disabled={locLoading}>
-              {locLoading ? "Getting Location..." : "USE MY LOCATION"}
+              {locLoading && <span className="spinner"></span>}
+              {locLoading ? "Locating..." : "USE MY LOCATION"}
             </button>
             {locError && <div style={{fontSize:12,color:"var(--red)",textAlign:"center"}}>{locError}</div>}
             <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -382,9 +588,9 @@ export default function App() {
             <input className="field" placeholder="123 Main St, Wichita KS" value={address} onChange={e => setAddress(e.target.value)} style={{fontSize:18}}/>
             <div className="sec">Default Markup</div>
             <div className="markup-global">
-              <span style={{fontSize:12,color:"var(--muted)",flex:1}}>Global multiplier for all new items</span>
+              <span className="markup-label">Global multiplier</span>
               <input className="mini-input" type="number" step="0.1" value={globalMarkup} onChange={e => setGlobalMarkup(e.target.value)} />
-              <span className="markup-pct">{globalMarkup ? Math.round((parseFloat(globalMarkup)-1)*100)+"% margin" : ""}</span>
+              <span className="markup-pct">{globalMarkup ? Math.round((parseFloat(globalMarkup)-1)*100)+"%" : ""}</span>
             </div>
             <button className="btn-y" disabled={!address.trim()} onClick={() => setScreen("rooms")}>START WALKTHROUGH</button>
           </div>
@@ -393,7 +599,7 @@ export default function App() {
         {screen === "rooms" && (
           <div className="scr">
             <div className="sec">Rooms ({rooms.length})</div>
-            {rooms.length === 0 && <div className="empty">No rooms yet — tap a room below to start</div>}
+            {rooms.length === 0 && <div className="empty">No rooms added yet</div>}
             {rooms.map((room, idx) => {
               const rs = room.items.reduce((s,i) => s+i.sell*i.qty,0);
               const rc = room.items.reduce((s,i) => s+i.cost*i.qty,0);
@@ -418,7 +624,7 @@ export default function App() {
                       <span className="isell" style={{fontSize:13}}>{fmt(it.sell*it.qty)}</span>
                     </div>
                   ))}
-                  {room.items.length > 3 && <div style={{fontSize:11,color:"var(--muted)",paddingTop:5}}>+{room.items.length-3} more...</div>}
+                  {room.items.length > 3 && <div style={{fontSize:11,color:"var(--muted)",paddingTop:5}}>+{room.items.length-3} more</div>}
                   <button className="add-btn" onClick={() => { setActiveIdx(idx); setScreen("room"); }}>
                     {room.items.length ? "Edit Room →" : "+ Add Items"}
                   </button>
@@ -448,7 +654,7 @@ export default function App() {
 
         {screen === "room" && active && (
           <div className="scr">
-            {active.items.length === 0 && <div className="empty">No items yet. Add from catalog below.</div>}
+            {active.items.length === 0 && <div className="empty">Tap catalog to add items</div>}
             {active.items.map(it => (
               <div key={it.iid} style={{background:"var(--s1)",borderRadius:8,padding:"10px 12px",border:"1.5px solid var(--border)"}}>
                 <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
@@ -488,15 +694,29 @@ export default function App() {
               </div>
             )}
             <button className="btn-y" onClick={() => { setSearch(""); setCatTab("Paint"); setScreen("catalog"); }}>+ ADD FROM CATALOG</button>
-            <div className="sec">Google Drive Link (optional)</div>
-            <input className="field" placeholder="Paste photo folder link here..." value={active.driveLink}
-              onChange={e => setRooms(rooms.map((r,i) => i===activeIdx ? {...r,driveLink:e.target.value} : r))} />
+            {activeIdx > 0 && rooms[activeIdx - 1].items.length > 0 && (
+              <button className="btn-ghost" onClick={copyFromLastRoom}>Copy items from {rooms[activeIdx - 1].name}</button>
+            )}
+            <div className="sec">Google Drive Link</div>
+            <input className="field" placeholder="Paste Google Drive link here..." value={active.driveLink}
+              onChange={e => setRooms(rooms.map((r,i) => i===activeIdx ? {...r,driveLink:e.target.value} : r))} 
+              style={{background:"var(--s2)",border:"2px solid var(--y)",fontSize:14}}/>
             <div className="sec">Room Notes</div>
-            <textarea className="notes-field" placeholder="Notes for this room..." value={active.notes}
-              onChange={e => setRooms(rooms.map((r,i) => i===activeIdx ? {...r,notes:e.target.value} : r))} />
-            <div className="sec">Custom / Unlisted Item</div>
+            <div className="notes-row">
+              <textarea className={`notes-field ${('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) ? 'with-voice' : ''}`} 
+                placeholder="Notes for this room..." value={active.notes}
+                onChange={e => setRooms(rooms.map((r,i) => i===activeIdx ? {...r,notes:e.target.value} : r))} />
+              {('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) && (
+                <div className="voice-btn-wrapper">
+                  <button className={`voice-btn attached ${isListening ? 'recording' : ''}`} onClick={startVoiceInput}>
+                    🎤
+                  </button>
+                </div>
+              )}
+            </div>
+            <div className="sec">Custom Item</div>
             {!showCustom ? (
-              <button className="btn-ghost" onClick={() => setShowCustom(true)}>+ Add custom item...</button>
+              <button className="btn-ghost" onClick={() => setShowCustom(true)}>+ Add custom item</button>
             ) : (
               <div className="custom-form">
                 <input className="field-sm" placeholder="Item name" value={custom.name} onChange={e => setCustom({...custom,name:e.target.value})} />
@@ -530,7 +750,7 @@ export default function App() {
                 </div>
               </div>
             )}
-            <button className="btn-ghost" onClick={() => setScreen("rooms")}>← Back to All Rooms</button>
+            <button className="back-to-rooms" onClick={() => setScreen("rooms")}>← BACK TO ALL ROOMS</button>
           </div>
         )}
 
@@ -558,6 +778,7 @@ export default function App() {
                 }
               </div>
             ))}
+            <button className="back-to-rooms" onClick={() => setScreen("room")}>← BACK TO {active?.name.toUpperCase()}</button>
           </div>
         )}
 
@@ -585,7 +806,7 @@ export default function App() {
                     </div>
                   </div>
                 ))}
-                {room.driveLink && <div style={{fontSize:11,color:"var(--muted)",paddingTop:5,wordBreak:"break-all"}}>📷 Photos: {room.driveLink}</div>}
+                {room.driveLink && <div style={{fontSize:11,color:"var(--muted)",paddingTop:5,wordBreak:"break-all"}}>📷 {room.driveLink}</div>}
                 {room.notes && <div style={{fontSize:11,color:"var(--muted)",paddingTop:4,fontStyle:"italic"}}>"{room.notes}"</div>}
               </div>
             ))}
@@ -599,6 +820,7 @@ export default function App() {
               <div className="tot-detail">Cost: {fmt(grandCost)} · Margin: {fmt(grandSell-grandCost)} ({grandSell>0?Math.round((1-grandCost/grandSell)*100):0}%)</div>
             </div>
             <button className="btn-y" onClick={handleSend}>EMAIL TO IAN</button>
+            <button className="copy-btn" onClick={copyToClipboard}>📋 Copy to Clipboard</button>
             <button className="btn-ghost" onClick={() => setScreen("rooms")}>Edit Estimate</button>
           </div>
         )}
@@ -669,6 +891,12 @@ export default function App() {
             </div>
           </div>
         )}
+
+        {toast && <div className="toast">{toast}</div>}
+
+        <div className="footer">
+          TenantTurn v1.0 · © 2026 · Estimates auto-saved
+        </div>
 
       </div>
     </>
