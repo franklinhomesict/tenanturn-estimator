@@ -1,82 +1,142 @@
 import { useState, useRef, useEffect } from "react";
 
 const CATALOG = [
-  { id:"p1",  cat:"Paint",       name:"Level 1 Paint - Walls Only",       unit:"sqft", cost:1.19  },
-  { id:"p2",  cat:"Paint",       name:"Level 2 Paint - Walls + Trim",     unit:"sqft", cost:1.49  },
-  { id:"p3",  cat:"Paint",       name:"Level 3 Paint - Walls/Trim/Doors", unit:"sqft", cost:1.60  },
-  { id:"p4",  cat:"Paint",       name:"Ceiling Paint",                    unit:"sqft", cost:0.22  },
-  { id:"p5",  cat:"Paint",       name:"Level 2 Prep",                     unit:"sqft", cost:0.21  },
-  { id:"p6",  cat:"Paint",       name:"Level 3 Prep",                     unit:"sqft", cost:0.35  },
-  { id:"p7",  cat:"Paint",       name:"Prime Paneling",                   unit:"sqft", cost:0.50  },
-  { id:"p8",  cat:"Paint",       name:"Wall Repair",                      unit:"each", cost:60    },
-  { id:"p9",  cat:"Paint",       name:"Caulking",                         unit:"lnft", cost:0.52  },
-  { id:"p10", cat:"Paint",       name:"Paint Cabinets In + Out",          unit:"lnft", cost:21.42 },
-  { id:"p11", cat:"Paint",       name:"Paint Cabinets Outside Only",      unit:"lnft", cost:16.00 },
-  { id:"p12", cat:"Paint",       name:"Kilz Cabinets",                    unit:"lnft", cost:6.00  },
-  { id:"p13", cat:"Paint",       name:"Paint Tub",                        unit:"each", cost:60    },
-  { id:"p14", cat:"Paint",       name:"Paint Surround",                   unit:"each", cost:60    },
-  { id:"p15", cat:"Paint",       name:"Clean Walls Before Paint",         unit:"sqft", cost:0.20  },
-  { id:"p16", cat:"Paint",       name:"Kilz Spot Spray",                  unit:"sqft", cost:0.20  },
-  { id:"d1",  cat:"Drywall",     name:"Remove Sheetrock",                 unit:"sqft", cost:0.40  },
-  { id:"d2",  cat:"Drywall",     name:"Install + Finish Sheetrock",       unit:"sqft", cost:1.20  },
-  { id:"f1",  cat:"Flooring",    name:"Lay LVP",                          unit:"sqft", cost:1.90  },
-  { id:"f2",  cat:"Flooring",    name:"Replace Subfloor",                 unit:"sqft", cost:7.14  },
-  { id:"f3",  cat:"Flooring",    name:"Remove Carpet",                    unit:"sqft", cost:0.10  },
-  { id:"f4",  cat:"Flooring",    name:"Remove Staples",                   unit:"sqft", cost:0.30  },
-  { id:"f5",  cat:"Flooring",    name:"Remove Tack Strips",               unit:"lnft", cost:1.00  },
-  { id:"f6",  cat:"Flooring",    name:"Paint Floor",                      unit:"sqft", cost:0.48  },
-  { id:"f7",  cat:"Flooring",    name:"Kilz Floors",                      unit:"sqft", cost:0.15  },
-  { id:"f8",  cat:"Flooring",    name:"Quarter Round",                    unit:"lnft", cost:0.60  },
-  { id:"f9",  cat:"Flooring",    name:"Install Trim",                     unit:"lnft", cost:1.00  },
-  { id:"f10", cat:"Flooring",    name:"Repair Joists + New Subfloor",     unit:"sqft", cost:5.19  },
-  { id:"b1",  cat:"Bathroom",    name:"Vanity Install",                   unit:"each", cost:100   },
-  { id:"b2",  cat:"Bathroom",    name:"Caulk Tub",                        unit:"each", cost:20    },
-  { id:"b3",  cat:"Bathroom",    name:"Install Toilet",                   unit:"each", cost:75    },
-  { id:"b4",  cat:"Bathroom",    name:"Swap Sink",                        unit:"each", cost:40    },
-  { id:"b5",  cat:"Bathroom",    name:"Remove Toilet",                    unit:"each", cost:37    },
-  { id:"b6",  cat:"Bathroom",    name:"Install Toilet Paper Holder",      unit:"each", cost:20    },
-  { id:"b7",  cat:"Bathroom",    name:"Replace Shower Surround",          unit:"each", cost:120   },
-  { id:"b8",  cat:"Bathroom",    name:"Install Toilet Seat",              unit:"each", cost:10    },
-  { id:"b9",  cat:"Bathroom",    name:"Install Toilet Tank Top",          unit:"each", cost:10    },
-  { id:"b10", cat:"Bathroom",    name:"Replace Shower Head",              unit:"each", cost:10    },
-  { id:"b11", cat:"Bathroom",    name:"Replace Sink Stopper",             unit:"each", cost:10    },
-  { id:"b12", cat:"Bathroom",    name:"Caulk Shower",                     unit:"each", cost:15    },
-  { id:"e1",  cat:"Electrical",  name:"Replace Bulb",                     unit:"each", cost:5     },
-  { id:"e2",  cat:"Electrical",  name:"Ceiling Fan Swap",                 unit:"each", cost:60    },
-  { id:"e3",  cat:"Electrical",  name:"Light Switch",                     unit:"each", cost:15    },
-  { id:"e4",  cat:"Electrical",  name:"Replace Fixture",                  unit:"each", cost:25    },
-  { id:"e5",  cat:"Electrical",  name:"Wire for New Fixture",             unit:"each", cost:25    },
-  { id:"e6",  cat:"Electrical",  name:"Add Switch",                       unit:"each", cost:30    },
-  { id:"e7",  cat:"Electrical",  name:"Outlet Replacement",               unit:"each", cost:15    },
-  { id:"e8",  cat:"Electrical",  name:"Outlet Cover",                     unit:"each", cost:3     },
-  { id:"e9",  cat:"Electrical",  name:"Light Switch Cover",               unit:"each", cost:3     },
-  { id:"e10", cat:"Electrical",  name:"Install Smoke Detector",           unit:"each", cost:20    },
-  { id:"dr1", cat:"Doors",       name:"Install Bifold Doors",             unit:"each", cost:100   },
-  { id:"dr2", cat:"Doors",       name:"Frame New Door (small)",           unit:"each", cost:125   },
-  { id:"dr3", cat:"Doors",       name:"Install Door",                     unit:"each", cost:35    },
-  { id:"dr4", cat:"Doors",       name:"Install Door Handle",              unit:"each", cost:20    },
-  { id:"dr5", cat:"Doors",       name:"Frame + Finish Door Opening",      unit:"each", cost:140   },
-  { id:"w1",  cat:"Windows",     name:"Install Small Window (3ft)",       unit:"each", cost:100   },
-  { id:"w2",  cat:"Windows",     name:"Install Blind",                    unit:"each", cost:10    },
-  { id:"w3",  cat:"Windows",     name:"Finish Window Unit Opening",       unit:"each", cost:100   },
-  { id:"w4",  cat:"Windows",     name:"Install Curtain Rod",              unit:"each", cost:25    },
-  { id:"g1",  cat:"General",     name:"Frame New Closet (3x6)",           unit:"each", cost:150   },
-  { id:"g2",  cat:"General",     name:"Install Closet Rod",               unit:"each", cost:20    },
-  { id:"g3",  cat:"General",     name:"Install Closet Shelf",             unit:"lnft", cost:5     },
-  { id:"g4",  cat:"General",     name:"Install Insulation",               unit:"sqft", cost:1.25  },
-  { id:"g5",  cat:"General",     name:"Install Mirror",                   unit:"each", cost:25    },
-  { id:"g6",  cat:"General",     name:"Remove Gas Line",                  unit:"each", cost:20    },
-  { id:"g7",  cat:"General",     name:"Cap Gas Line",                     unit:"each", cost:10    },
-  { id:"g8",  cat:"General",     name:"Replace Dishwasher",               unit:"each", cost:150   },
-  { id:"g9",  cat:"General",     name:"Install Drip Pans",                unit:"each", cost:5     },
-  { id:"g10", cat:"General",     name:"Install Burner Grate",             unit:"each", cost:5     },
-  { id:"c1",  cat:"Countertops", name:"Replace Laminate Countertop",      unit:"lnft", cost:16.66 },
-  { id:"pl1", cat:"Plumbing",    name:"Move Toilet Plumbing",             unit:"each", cost:150   },
-  { id:"pl2", cat:"Plumbing",    name:"Remove Hot Water Heater",          unit:"each", cost:50    },
-  { id:"pl3", cat:"Plumbing",    name:"Install Hot Water Heater",         unit:"each", cost:200   },
-  { id:"pl4", cat:"Plumbing",    name:"Move Hot Water Heater",            unit:"each", cost:150   },
-  { id:"pl5", cat:"Plumbing",    name:"Install Toilet (plumbing)",        unit:"each", cost:37    },
-  { id:"ex1", cat:"Exterior",    name:"Clean Gutters",                    unit:"lnft", cost:1.00  },
+  // PAINT
+  { id:"p1",   cat:"Paint",       name:"Level 1 Paint - Walls Only",            unit:"sqft", cost:1.19  },
+  { id:"p2",   cat:"Paint",       name:"Level 2 Paint - Walls + Trim",          unit:"sqft", cost:1.49  },
+  { id:"p3",   cat:"Paint",       name:"Level 3 Paint - Walls/Trim/Doors",      unit:"sqft", cost:1.60  },
+  { id:"p4",   cat:"Paint",       name:"Ceiling Paint - Sprayed",               unit:"sqft", cost:0.22  },
+  { id:"p4b",  cat:"Paint",       name:"Ceiling Paint - Rolled",                unit:"sqft", cost:0.40  },
+  { id:"p4c",  cat:"Paint",       name:"Paint Ceiling New Color",               unit:"sqft", cost:0.80  },
+  { id:"p5",   cat:"Paint",       name:"Level 2 Prep",                          unit:"sqft", cost:0.21  },
+  { id:"p6",   cat:"Paint",       name:"Level 3 Prep",                          unit:"sqft", cost:0.35  },
+  { id:"p6b",  cat:"Paint",       name:"Roll Out Walls - No Trim",              unit:"sqft", cost:0.80  },
+  { id:"p6c",  cat:"Paint",       name:"Roll Out - No Cut In",                  unit:"sqft", cost:0.60  },
+  { id:"p7",   cat:"Paint",       name:"Prime Paneling",                        unit:"sqft", cost:0.50  },
+  { id:"p8",   cat:"Paint",       name:"Wall Repair",                           unit:"each", cost:60    },
+  { id:"p9",   cat:"Paint",       name:"Caulking",                              unit:"lnft", cost:0.52  },
+  { id:"p10",  cat:"Paint",       name:"Paint Cabinets In + Out",               unit:"lnft", cost:21.42 },
+  { id:"p11",  cat:"Paint",       name:"Paint Cabinets Outside Only",           unit:"lnft", cost:16.00 },
+  { id:"p11b", cat:"Paint",       name:"Cabinets New Color Charge",             unit:"lnft", cost:8.12  },
+  { id:"p12",  cat:"Paint",       name:"Kilz Cabinets",                         unit:"lnft", cost:6.00  },
+  { id:"p13",  cat:"Paint",       name:"Paint Tub",                             unit:"each", cost:60    },
+  { id:"p14",  cat:"Paint",       name:"Paint Surround",                        unit:"each", cost:60    },
+  { id:"p15",  cat:"Paint",       name:"Clean Walls Before Paint",              unit:"sqft", cost:0.20  },
+  { id:"p16",  cat:"Paint",       name:"Kilz Spot Spray",                       unit:"sqft", cost:0.20  },
+  { id:"p17",  cat:"Paint",       name:"Paint Door Both Sides",                 unit:"each", cost:30    },
+  { id:"p18",  cat:"Paint",       name:"Kilz Walls/Doors/Ceilings - Sprayed",  unit:"sqft", cost:0.60  },
+  { id:"p19",  cat:"Paint",       name:"Spray Kilz Before Paint",               unit:"sqft", cost:0.80  },
+  { id:"p20",  cat:"Paint",       name:"Scrape Popcorn + Spray Knockdown",      unit:"sqft", cost:3.50  },
+  { id:"p21",  cat:"Paint",       name:"Touch Up Trim",                         unit:"lnft", cost:1.25  },
+  { id:"p22",  cat:"Paint",       name:"Prep + Paint Floors Level 1",           unit:"sqft", cost:0.80  },
+  // DRYWALL
+  { id:"d1",   cat:"Drywall",     name:"Remove Sheetrock",                      unit:"sqft", cost:0.40  },
+  { id:"d2",   cat:"Drywall",     name:"Install + Finish Sheetrock",            unit:"sqft", cost:1.20  },
+  { id:"d3",   cat:"Drywall",     name:"Skim Coat Drywall",                     unit:"sqft", cost:1.10  },
+  { id:"d4",   cat:"Drywall",     name:"Lath + Plaster Ceiling Removal",        unit:"sqft", cost:2.25  },
+  // FLOORING
+  { id:"f1",   cat:"Flooring",    name:"Lay LVP",                               unit:"sqft", cost:1.90  },
+  { id:"f2",   cat:"Flooring",    name:"Replace Subfloor",                      unit:"sqft", cost:9.80  },
+  { id:"f3",   cat:"Flooring",    name:"Remove Carpet",                         unit:"sqft", cost:0.10  },
+  { id:"f3b",  cat:"Flooring",    name:"Demo LVP",                              unit:"sqft", cost:0.30  },
+  { id:"f4",   cat:"Flooring",    name:"Remove Staples",                        unit:"sqft", cost:0.30  },
+  { id:"f5",   cat:"Flooring",    name:"Remove Tack Strips",                    unit:"lnft", cost:0.10  },
+  { id:"f6",   cat:"Flooring",    name:"Paint Floor",                           unit:"sqft", cost:0.48  },
+  { id:"f7",   cat:"Flooring",    name:"Kilz Floors",                           unit:"sqft", cost:0.15  },
+  { id:"f8",   cat:"Flooring",    name:"Quarter Round",                         unit:"lnft", cost:0.60  },
+  { id:"f9",   cat:"Flooring",    name:"Install Trim",                          unit:"lnft", cost:4.00  },
+  { id:"f10",  cat:"Flooring",    name:"Repair Joists + New Subfloor",          unit:"sqft", cost:5.19  },
+  { id:"f11",  cat:"Flooring",    name:"Install Vapor Barrier",                 unit:"sqft", cost:0.30  },
+  { id:"f12",  cat:"Flooring",    name:"Bathroom Charge LVP",                   unit:"each", cost:30    },
+  { id:"f13",  cat:"Flooring",    name:"Closet Charge LVP",                     unit:"each", cost:20    },
+  { id:"f14",  cat:"Flooring",    name:"Lay Tile",                              unit:"sqft", cost:10.00 },
+  { id:"f15",  cat:"Flooring",    name:"Lay Tile (Basic)",                      unit:"sqft", cost:6.00  },
+  { id:"f16",  cat:"Flooring",    name:"Refinish Hardwoods - Sand/Stain/Poly",  unit:"sqft", cost:3.00  },
+  // BATHROOM
+  { id:"b1",   cat:"Bathroom",    name:"Vanity Install",                        unit:"each", cost:130   },
+  { id:"b1b",  cat:"Bathroom",    name:"Replace Vanity",                        unit:"each", cost:200   },
+  { id:"b2",   cat:"Bathroom",    name:"Caulk Tub",                             unit:"each", cost:20    },
+  { id:"b3",   cat:"Bathroom",    name:"Install Toilet",                        unit:"each", cost:75    },
+  { id:"b4",   cat:"Bathroom",    name:"Swap Sink",                             unit:"each", cost:40    },
+  { id:"b5",   cat:"Bathroom",    name:"Remove Toilet",                         unit:"each", cost:37    },
+  { id:"b6",   cat:"Bathroom",    name:"Install Toilet Paper Holder",           unit:"each", cost:20    },
+  { id:"b7",   cat:"Bathroom",    name:"Replace Shower Surround",               unit:"each", cost:450   },
+  { id:"b8",   cat:"Bathroom",    name:"Install Toilet Seat",                   unit:"each", cost:10    },
+  { id:"b9",   cat:"Bathroom",    name:"Install Toilet Tank Top",               unit:"each", cost:10    },
+  { id:"b10",  cat:"Bathroom",    name:"Replace Shower Head",                   unit:"each", cost:10    },
+  { id:"b11",  cat:"Bathroom",    name:"Replace Sink Stopper",                  unit:"each", cost:10    },
+  { id:"b12",  cat:"Bathroom",    name:"Caulk Shower",                          unit:"each", cost:15    },
+  { id:"b13",  cat:"Bathroom",    name:"Replace Wall/Shower Tile (<=10 sf)",    unit:"each", cost:50    },
+  { id:"b14",  cat:"Bathroom",    name:"Replace Bath Faucet + Handles",         unit:"each", cost:250   },
+  { id:"b15",  cat:"Bathroom",    name:"Demo Bath Tub",                         unit:"each", cost:200   },
+  { id:"b16",  cat:"Bathroom",    name:"Install New Bath Tub",                  unit:"each", cost:400   },
+  // ELECTRICAL
+  { id:"e1",   cat:"Electrical",  name:"Replace Bulb",                          unit:"each", cost:5     },
+  { id:"e2",   cat:"Electrical",  name:"Ceiling Fan Swap",                      unit:"each", cost:60    },
+  { id:"e3",   cat:"Electrical",  name:"Light Switch",                          unit:"each", cost:15    },
+  { id:"e4",   cat:"Electrical",  name:"Replace Fixture",                       unit:"each", cost:25    },
+  { id:"e5",   cat:"Electrical",  name:"Wire for New Fixture",                  unit:"each", cost:25    },
+  { id:"e6",   cat:"Electrical",  name:"Add Switch",                            unit:"each", cost:30    },
+  { id:"e7",   cat:"Electrical",  name:"Outlet Replacement",                    unit:"each", cost:10    },
+  { id:"e8",   cat:"Electrical",  name:"Outlet Cover",                          unit:"each", cost:3     },
+  { id:"e9",   cat:"Electrical",  name:"Light Switch Cover",                    unit:"each", cost:3     },
+  { id:"e10",  cat:"Electrical",  name:"Install Smoke Detector",                unit:"each", cost:20    },
+  // DOORS
+  { id:"dr1",  cat:"Doors",       name:"Install Bifold Doors",                  unit:"each", cost:60    },
+  { id:"dr2",  cat:"Doors",       name:"Frame New Door (small)",                unit:"each", cost:125   },
+  { id:"dr3",  cat:"Doors",       name:"Install Door",                          unit:"each", cost:35    },
+  { id:"dr3b", cat:"Doors",       name:"Install Door Hinges",                   unit:"each", cost:15    },
+  { id:"dr4",  cat:"Doors",       name:"Install Door Handle",                   unit:"each", cost:20    },
+  { id:"dr4b", cat:"Doors",       name:"Install Door Stopper",                  unit:"each", cost:5     },
+  { id:"dr4c", cat:"Doors",       name:"Install Wall Door Stop",                unit:"each", cost:10    },
+  { id:"dr5",  cat:"Doors",       name:"Frame + Finish Door Opening",           unit:"each", cost:140   },
+  { id:"dr6",  cat:"Doors",       name:"Replace Standard Screen Door",          unit:"each", cost:200   },
+  { id:"dr7",  cat:"Doors",       name:"Replace Vertical Blinds",               unit:"each", cost:25    },
+  // WINDOWS
+  { id:"w1",   cat:"Windows",     name:"Install Small Window (3ft)",            unit:"each", cost:100   },
+  { id:"w1b",  cat:"Windows",     name:"Window Replacement (Standard)",         unit:"each", cost:150   },
+  { id:"w1c",  cat:"Windows",     name:"Window Replacement (10+ units)",        unit:"each", cost:125   },
+  { id:"w1d",  cat:"Windows",     name:"Replace Window Pane",                   unit:"each", cost:50    },
+  { id:"w2",   cat:"Windows",     name:"Install Blind",                         unit:"each", cost:10    },
+  { id:"w3",   cat:"Windows",     name:"Finish Window Unit Opening",            unit:"each", cost:100   },
+  { id:"w4",   cat:"Windows",     name:"Install Curtain Rod",                   unit:"each", cost:25    },
+  { id:"w5",   cat:"Windows",     name:"Repair Screen",                         unit:"each", cost:15    },
+  // KITCHEN
+  { id:"k1",   cat:"Kitchen",     name:"Replace Dishwasher",                    unit:"each", cost:150   },
+  { id:"k2",   cat:"Kitchen",     name:"Vent Hood Install",                     unit:"each", cost:150   },
+  { id:"k3",   cat:"Kitchen",     name:"Microwave Mounted Install",             unit:"each", cost:150   },
+  { id:"k4",   cat:"Kitchen",     name:"Replace Kitchen Faucet",                unit:"each", cost:75    },
+  { id:"k5",   cat:"Kitchen",     name:"Install Drip Pans",                     unit:"each", cost:5     },
+  { id:"k6",   cat:"Kitchen",     name:"Install Burner Grate",                  unit:"each", cost:5     },
+  // COUNTERTOPS
+  { id:"c1",   cat:"Countertops", name:"Replace Laminate Countertop",           unit:"lnft", cost:16.66 },
+  { id:"c2",   cat:"Countertops", name:"Install Butcher Block Countertop",      unit:"lnft", cost:35.00 },
+  { id:"c3",   cat:"Countertops", name:"Epoxy Countertops",                     unit:"lnft", cost:8.19  },
+  // PLUMBING
+  { id:"pl1",  cat:"Plumbing",    name:"Move Toilet Plumbing",                  unit:"each", cost:150   },
+  { id:"pl2",  cat:"Plumbing",    name:"Remove Hot Water Heater",               unit:"each", cost:50    },
+  { id:"pl3",  cat:"Plumbing",    name:"Install Hot Water Heater",              unit:"each", cost:200   },
+  { id:"pl4",  cat:"Plumbing",    name:"Move Hot Water Heater",                 unit:"each", cost:150   },
+  { id:"pl5",  cat:"Plumbing",    name:"Install Toilet (plumbing)",             unit:"each", cost:37    },
+  // GENERAL
+  { id:"g1",   cat:"General",     name:"Frame New Closet (3x6)",                unit:"each", cost:150   },
+  { id:"g2",   cat:"General",     name:"Install Closet Rod",                    unit:"each", cost:20    },
+  { id:"g3",   cat:"General",     name:"Install Closet Shelf",                  unit:"lnft", cost:5     },
+  { id:"g4",   cat:"General",     name:"Install Insulation",                    unit:"sqft", cost:1.25  },
+  { id:"g5",   cat:"General",     name:"Install Mirror",                        unit:"each", cost:25    },
+  { id:"g6",   cat:"General",     name:"Remove Gas Line",                       unit:"each", cost:20    },
+  { id:"g7",   cat:"General",     name:"Cap Gas Line",                          unit:"each", cost:10    },
+  { id:"g8",   cat:"General",     name:"Tile Backsplash or Tub Surround",       unit:"sqft", cost:6.00  },
+  { id:"g9",   cat:"General",     name:"Build Handrail at Porch",               unit:"lnft", cost:13.39 },
+  { id:"g10",  cat:"General",     name:"Replace One Deck Board",                unit:"each", cost:5     },
+  // HARDWARE
+  { id:"hw1",  cat:"Hardware",    name:"Install Cabinet Knob",                  unit:"each", cost:1.00  },
+  { id:"hw2",  cat:"Hardware",    name:"Remove + Install Cabinet Hinge",        unit:"each", cost:2.00  },
+  { id:"hw3",  cat:"Hardware",    name:"Drill Holes + Install Hardware",        unit:"each", cost:5.00  },
+  // EXTERIOR
+  { id:"ex1",  cat:"Exterior",    name:"Clean Gutters",                         unit:"lnft", cost:1.00  },
+  { id:"ex2",  cat:"Exterior",    name:"Paint Wood Siding w/ Scrape + Prep",    unit:"sqft", cost:14.16 },
+  { id:"ex3",  cat:"Exterior",    name:"Paint Wood Siding - No Prep",           unit:"sqft", cost:10.83 },
 ];
 
 const CATS = [...new Set(CATALOG.map(i => i.cat))];
@@ -459,7 +519,7 @@ export default function App() {
       const rs = r.items.reduce((s,i) => s+i.sell*i.qty,0);
       const rc = r.items.reduce((s,i) => s+i.cost*i.qty,0);
       t += `-- ${r.name.toUpperCase()} -- Sell: ${fmt(rs)} | Cost: ${fmt(rc)}\n`;
-      r.items.forEach(i => { t += `  ${i.name}: ${i.qty} ${UNIT_LABELS[i.unit]||i.unit} | Cost ${fmt(i.cost*i.qty)} -> Sell ${fmt(i.sell*i.qty)} (${i.markup}x)\n`; });
+      r.items.forEach(i => { t += `  ${i.name}: ${i.qty} ${UNIT_LABELS[i.unit]||i.unit} | Cost ${fmt(i.cost*i.qty)} -> Sell ${fmt(i.sell*i.qty)} (${Math.round((i.markup-1)*100)}% markup)\n`; });
       if (r.notes) t += `  Notes: ${r.notes}\n`;
       if (r.driveLink) t += `  Photos: ${r.driveLink}\n`;
       t += "\n";
@@ -520,6 +580,11 @@ export default function App() {
   const liveSellUnit = cVal > 0 ? cVal * mVal : 0;
   const liveCostTotal = qVal > 0 && cVal > 0 ? cVal * qVal : 0;
   const liveSellTotal = qVal > 0 && liveSellUnit > 0 ? liveSellUnit * qVal : 0;
+  const gm = parseFloat(globalMarkup) || 1.6;
+  const gmMarkupPct = Math.round((gm - 1) * 100);
+  const gmMarginPct = parseFloat(((1 - 1 / gm) * 100).toFixed(1));
+  const itemMarkupPct = Math.round((mVal - 1) * 100);
+  const itemMarginPct = parseFloat(((1 - 1 / mVal) * 100).toFixed(1));
 
   return (
     <>
@@ -586,11 +651,27 @@ export default function App() {
               <div style={{flex:1,height:1,background:"var(--border)"}}/>
             </div>
             <input className="field" placeholder="123 Main St, Wichita KS" value={address} onChange={e => setAddress(e.target.value)} style={{fontSize:18}}/>
-            <div className="sec">Default Markup</div>
+            <div className="sec">Markup & Margin</div>
             <div className="markup-global">
-              <span className="markup-label">Global multiplier</span>
-              <input className="mini-input" type="number" step="0.1" value={globalMarkup} onChange={e => setGlobalMarkup(e.target.value)} />
-              <span className="markup-pct">{globalMarkup ? Math.round((parseFloat(globalMarkup)-1)*100)+"%" : ""}</span>
+              <div style={{flex:1}}>
+                <div style={{fontSize:10,color:"var(--muted)",letterSpacing:1,textTransform:"uppercase",marginBottom:4}}>Markup %</div>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <input className="mini-input" style={{width:64}} type="number" step="1" inputMode="decimal"
+                    value={gmMarkupPct}
+                    onChange={e => { const v=parseFloat(e.target.value); if(!isNaN(v)&&v>=0) setGlobalMarkup(String(parseFloat((1+v/100).toFixed(6)))); }} />
+                  <span className="markup-pct">%</span>
+                </div>
+              </div>
+              <div style={{width:1,height:40,background:"var(--border)"}}/>
+              <div style={{flex:1}}>
+                <div style={{fontSize:10,color:"var(--muted)",letterSpacing:1,textTransform:"uppercase",marginBottom:4}}>Margin %</div>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <input className="mini-input" style={{width:64}} type="number" step="0.1" inputMode="decimal"
+                    value={gmMarginPct}
+                    onChange={e => { const v=parseFloat(e.target.value); if(!isNaN(v)&&v>=0&&v<100) setGlobalMarkup(String(parseFloat((1/(1-v/100)).toFixed(6)))); }} />
+                  <span className="markup-pct">%</span>
+                </div>
+              </div>
             </div>
             <button className="btn-y" disabled={!address.trim()} onClick={() => setScreen("rooms")}>START WALKTHROUGH</button>
           </div>
@@ -660,7 +741,7 @@ export default function App() {
                 <div style={{display:"flex",gap:8,alignItems:"flex-start"}}>
                   <div style={{flex:1}}>
                     <div className="iname">{it.name}</div>
-                    <div className="idetail">{it.qty} {UNIT_LABELS[it.unit]||it.unit} · {it.markup}x</div>
+                    <div className="idetail">{it.qty} {UNIT_LABELS[it.unit]||it.unit} · {Math.round((it.markup-1)*100)}% markup</div>
                   </div>
                   <div className="iprices">
                     <div className="isell">{fmt(it.sell*it.qty)}</div>
@@ -798,7 +879,7 @@ export default function App() {
                   <div key={it.iid} className="irow">
                     <div style={{flex:1}}>
                       <div className="iname">{it.name}</div>
-                      <div className="idetail">{it.qty} {UNIT_LABELS[it.unit]||it.unit} · {it.markup}x markup</div>
+                      <div className="idetail">{it.qty} {UNIT_LABELS[it.unit]||it.unit} · {Math.round((it.markup-1)*100)}% markup / {parseFloat(((1-1/it.markup)*100).toFixed(1))}% margin</div>
                     </div>
                     <div className="iprices">
                       <div className="isell">{fmt(it.sell*it.qty)}</div>
@@ -858,11 +939,19 @@ export default function App() {
                   placeholder="0.00" value={pendingCost} onChange={e => setPendingCost(e.target.value)} />
               </div>
               <div className="field-row">
-                <span className="field-row-label">Markup multiplier</span>
-                <input className="mini-input" type="number" step="0.1" value={markup} onChange={e => setMarkup(e.target.value)} />
+                <span className="field-row-label">Markup %</span>
+                <input className="mini-input" type="number" step="1" inputMode="decimal"
+                  value={itemMarkupPct}
+                  onChange={e => { const v=parseFloat(e.target.value); if(!isNaN(v)&&v>=0) setMarkup(String(parseFloat((1+v/100).toFixed(6)))); }} />
                 <span style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,color:"var(--y)"}}>
                   {cVal>0?`= ${fmtD(cVal*mVal)}/unit`:""}
                 </span>
+              </div>
+              <div className="field-row" style={{marginTop:4}}>
+                <span className="field-row-label">Margin %</span>
+                <input className="mini-input" type="number" step="0.1" inputMode="decimal"
+                  value={itemMarginPct}
+                  onChange={e => { const v=parseFloat(e.target.value); if(!isNaN(v)&&v>=0&&v<100) setMarkup(String(parseFloat((1/(1-v/100)).toFixed(6)))); }} />
               </div>
               {qVal > 0 && cVal > 0 && (
                 <div className="calc-box">
