@@ -9,9 +9,11 @@ Know whether anyone is using the Tenanturn estimator, and how far they get.
 - No analytics wired in. `App.jsx` has zero tracking calls.
 - Only local telemetry is `localStorage` (`tenanturn_draft`, `tenanturn_warning_seen`) — never leaves the browser.
 - App is a single-page React (Vite) app served statically.
+- **Hosted on Vercel** (project `tenanturn-estimator` in the `ian-5676s-projects` team) — discovered from the deploy bot comment on PR #1. This matters: Vercel Analytics can give a "has anyone used this?" answer with **zero code changes** — toggle it on in the Vercel dashboard.
 
 ## Open questions (need Ian's answer before coding)
 - [ ] Where should events go? Options:
+  - **Vercel Analytics (recommended)** — one toggle in the Vercel dashboard, no code, gives page views + top pages. Free tier is generous. Best first step; can be augmented with custom events later via `@vercel/analytics`.
   - Plausible / Umami (hosted, privacy-friendly, ~free at this volume)
   - Google Analytics 4 (free, more features, cookie banner concerns)
   - Roll our own: POST to a small serverless endpoint we control
