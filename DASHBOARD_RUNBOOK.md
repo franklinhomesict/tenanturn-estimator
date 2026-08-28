@@ -1,0 +1,86 @@
+# TenanTurn Executive Dashboard — Refresh Runbook
+
+## Purpose
+This file is the handoff for future ChatGPT sessions. Read this **before refreshing or changing dashboard data** so the operating logic does not have to be reconstructed.
+
+## Live app
+- Public URL: https://tenanturn.vercel.app
+- Current dashboard lineage: v17
+- Vercel project: `tenanturn-dashboard`
+- GitHub repo: `franklinhomesict/tenanturn-estimator`
+- Default branch: `main`
+- Frontend: Vite + React
+- Main dashboard file: `src/App.jsx`
+- Browser title: `TenanTurn Executive Dashboard`
+- Logo: TenanTurn logo from JobTread organization record
+- GitHub `main` auto-deploys to Vercel production.
+
+## Source of truth
+**JobTread is the source of truth for operating and financial dashboard data.**
+
+Do not refresh the dashboard from an old spreadsheet, previous dashboard snapshot, prior ChatGPT numbers, or memory. Always query JobTread live first.
+
+## Critical TenanTurn operating rules
+1. **Draft invoices are placeholders only.** They are not A/R, not billing queue, not evidence a job is ready to bill, and do not affect financial stage until actually issued.
+2. **Pending Bid** = price sent; waiting for customer yes/no.
+3. **Backlog** = approved job with no vendor/work-order assignment yet.
+4. A **work order/vendor assignment is the first assignment signal**.
+5. **Assigned / Not Started** = vendor assigned but no reliable evidence work has actually started.
+6. **WIP** = work that has actually started and remains unfinished/unbilled. Verify start using work orders plus logs, comments, messages, photos, or other communication. Vendors may work without interacting with JobTread.
+7. **Complete / Billed** = invoice actually sent.
+8. **Paid** = payment received.
+9. Large phased jobs may contain paid/billed portions and WIP at the same time. Only unfinished/unbilled work remains WIP.
+10. Approved change orders on an active started job are WIP. If approved before any work begins, follow backlog/assigned logic until actual start.
+11. **Pass-through reimbursements are not performance revenue and not performance cost.** Remove them from both sides of profitability calculations.
+12. **Deposits/prepayments before work is performed are unearned customer cash**, not earned revenue/profit until work is performed.
+13. Roofing and other contractor services belong in company totals but should be broken out separately from Make Ready work.
+14. Blu, Blu 2, and SB are normal paying customers. Keep **billing account** separate from **work source/referral source** when JobTread notes identify the source.
+15. A denied/revised proposal version is not automatically a lost job. A **true lost job** requires final communication/outcome showing the customer chose another option, declined, or otherwise did not proceed.
+16. For vendor capacity, use **assignment/work-order date → done date** as cycle length. Do not infer actual days worked from log frequency. Calculate billable dollars generated over elapsed normal five-day workweek.
+17. Profit terminology: **Job Profit = earned revenue − vendor labor − payment/Instant Pay fees − other true job costs.** Do not call this company net profit unless complete overhead has been included.
+18. Track historical Instant Pay fees separately. Instant Pay is currently off.
+
+## Refresh procedure
+When Ian asks to “refresh,” “pull fresh data,” “update the dashboard,” or similar:
+
+1. Query live JobTread data for the current reporting period and prior comparison period.
+2. Rebuild current stages from source evidence:
+   - Pending Bids
+   - Backlog
+   - Assigned / Not Started
+   - WIP
+   - Sent & Unpaid A/R
+   - Paid
+3. Ignore draft invoices when determining stage or A/R.
+4. Review logs/comments/messages/photos where needed to distinguish assigned work from actual WIP.
+5. Reconcile paid invoices:
+   - remove reimbursements from revenue and cost
+   - exclude unearned deposits/prepayments
+   - include real production/vendor cost
+   - include verified payment/Instant Pay fees
+6. Reconcile cash separately from earned performance. Cash In/Out is not the same as earned revenue/profit.
+7. Re-check true lost jobs from actual outcome notes/communication.
+8. Re-check vendor assignment and completion dates before capacity calculations.
+9. Surface data-integrity exceptions explicitly instead of forcing uncertain records into a category.
+10. Cross-check totals before editing the app. If something does not reconcile, investigate rather than guessing.
+11. Update `src/App.jsx` with the newly verified dataset and dates.
+12. Commit to `main`; Vercel should auto-deploy.
+13. Verify production deployment is READY and confirm https://tenanturn.vercel.app loads after deployment.
+
+## Accuracy standard
+This dashboard is used to make real business decisions. **Never carry forward a number merely because it appeared in a prior version.** Re-query and re-verify live JobTread records. When evidence is incomplete, under-count or label it uncertain rather than manufacture precision.
+
+## Known caution from v17
+The first deployed React conversion of v17 contained a mismatch involving the Minneapolis prepayment: display text said the prepayment was excluded while some displayed totals still embedded it. Therefore, **do not treat the current static financial values in `src/App.jsx` as authoritative for the next refresh.** Recalculate them from live JobTread.
+
+## Dashboard design intent
+The app should let Ian and Brandon quickly answer:
+- What is coming in?
+- What has been won but not assigned?
+- What is assigned but not started?
+- What work is actually in progress?
+- What has been billed and is unpaid?
+- What is making money?
+- Where are margin, capacity, collection, or data-quality problems?
+
+Keep the interface executive-level and concise. Let the app do the talking; avoid excessive explanatory copy.
