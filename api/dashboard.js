@@ -2,14 +2,14 @@ const ORG_ID = '22Pa5G229Dc7';
 const ORG_NAME = 'TenanTurn LLC';
 const ENDPOINT = 'https://api.jobtread.com/pave';
 
-async function pave(query) {
+async function pave(query, label = 'query') {
   const response = await fetch(ENDPOINT, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ query })
   });
   const text = await response.text();
-  if (!response.ok) throw new Error(`JobTread ${response.status}: ${text.slice(0, 500)}`);
+  if (!response.ok) throw new Error(`${label}: JobTread ${response.status}: ${text.slice(0, 500)}`);
   const json = JSON.parse(text);
   return json?.data || json;
 }
@@ -22,13 +22,13 @@ async function fetchPaged(grantKey, field, buildConnection) {
     const root = await pave({
       $: { grantKey },
       organization: { $: { id: ORG_ID }, [field]: buildConnection(page) }
-    });
+    }, field);
     const result = root?.organization?.[field];
-    if (!result) throw new Error(`JobTread did not return organization.${field}`);
+    if (!result) throw new Error(`${field}: JobTread did not return organization.${field}`);
     nodes.push(...(result.nodes || []));
     page = result.nextPage || null;
     pages += 1;
-    if (pages > 50) throw new Error(`Pagination safety stop reached for ${field}`);
+    if (pages > 50) throw new Error(`${field}: Pagination safety stop reached`);
   } while (page);
   return { nodes, nextPage: null };
 }
@@ -118,21 +118,20 @@ export default async function handler(req, res) {
   if (!grantKey) return res.status(503).json({ ok: false, code: 'JOBTREAD_NOT_CONFIGURED', error: 'JOBTREAD_GRANT_KEY is not configured for this Vercel project.' });
 
   try {
-    const identity = await pave({ $: { grantKey }, currentGrant: { organization: { id: {}, name: {} } } });
+    const identity = await pave({ $: { grantKey }, currentGrant: { organization: { id: {}, name: {} } } }, 'identity');
     const org = identity?.currentGrant?.organization;
     if (!org || org.id !== ORG_ID || org.name !== ORG_NAME) {
       return res.status(403).json({ ok: false, code: 'WRONG_JOBTREAD_ORG', error: `Connected JobTread organization must be ${ORG_NAME}.` });
     }
 
-    const [jobs, documents, comments, dailyLogs, tasks, payments, documentPayments] = await Promise.all([
-      fetchPaged(grantKey, 'jobs', jobConnection),
-      fetchPaged(grantKey, 'documents', documentConnection),
-      fetchPaged(grantKey, 'comments', commentConnection),
-      fetchPaged(grantKey, 'dailyLogs', logConnection),
-      fetchPaged(grantKey, 'tasks', taskConnection),
-      fetchPaged(grantKey, 'payments', paymentConnection),
-      fetchPaged(grantKey, 'documentPayments', documentPaymentConnection)
-    ]);
+    // Intentionally sequential during live-feed hardening so a rejected Pave query is attributable.
+    const jobs = await fetchPaged(grantKey, 'jobs', jobConnection);
+    const documents = await fetchPaged(grantKey, 'documents', documentConnection);
+    const comments = await fetchPaged(grantKey, 'comments', commentConnection);
+    const dailyLogs = await fetchPaged(grantKey, 'dailyLogs', logConnection);
+    const tasks = await fetchPaged(grantKey, 'tasks', taskConnection);
+    const payments = await fetchPaged(grantKey, 'payments', paymentConnection);
+    const documentPayments = await fetchPaged(grantKey, 'documentPayments', documentPaymentConnection);
 
     return res.status(200).json({
       ok: true,
