@@ -158,7 +158,6 @@ export function buildForensicModel(data, start, end) {
   const exceptions = [];
   const push = (job, severity, code, detail) => exceptions.push({ job: job?.name || 'System', severity, code, detail });
 
-  // Potential duplicate economically-valid financial documents are never silently accepted.
   const duplicateBuckets = {};
   for (const d of [...invoices, ...vendorBills]) {
     const amount = documentTotal(d);
@@ -166,14 +165,12 @@ export function buildForensicModel(data, start, end) {
     (duplicateBuckets[k] ||= []).push(d);
   }
   for (const group of Object.values(duplicateBuckets)) if (group.length > 1) {
-    const names = group.map(d => d.fullName).join(', ');
-    push(group[0].job, 'Critical', 'POSSIBLE_DUPLICATE_FINANCIAL', `${group.length} valid financial documents share job, account, amount, and issue date: ${names}.`);
+    push(group[0].job, 'Critical', 'POSSIBLE_DUPLICATE_FINANCIAL', `${group.length} valid financial documents share job, account, amount, and issue date: ${group.map(d => d.fullName).join(', ')}.`);
   }
 
   const jobs = [];
   for (const x of Object.values(by)) {
     const approved = x.orders.filter(d => d.status === 'approved');
-    const denied = x.orders.filter(d => d.status === 'denied');
     const pending = x.orders.filter(d => d.status === 'pending');
     const approvedBase = approved.filter(d => !isChange(d)).sort((a, b) => new Date(eventDate(a) || 0) - new Date(eventDate(b) || 0));
     const approvedChanges = approved.filter(isChange);
@@ -321,7 +318,7 @@ export function buildForensicModel(data, start, end) {
   const outcomeReviews = jobs.filter(j => j.outcomeReview && inRange(eventDate(j.latestBase), start, end));
   const pendingNew = jobs.filter(j => j.pendingNew);
   const approvedChanges = jobs.flatMap(j => j.approvedChanges.map(doc => ({ job: j.job, pm: j.src.pm, source: j.src.source, doc }))).filter(x => inRange(eventDate(x.doc), start, end));
-  const pendingChanges = jobs.flatMap(j => j.pendingChanges.map(doc => ({ job: j.job, pm: j.src.pm, source: j.src.source, doc }));
+  const pendingChanges = jobs.flatMap(j => j.pendingChanges.map(doc => ({ job: j.job, pm: j.src.pm, source: j.src.source, doc })));
   const winRate = wins.length + losses.length ? 100 * wins.length / (wins.length + losses.length) : 0;
   const salesWon = sum(wins, j => productionRevenue(j.baseApproval));
 
