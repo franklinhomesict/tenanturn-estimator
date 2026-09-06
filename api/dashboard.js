@@ -1,3 +1,5 @@
+import { buildForensicModel, normalize } from '../src/forensicModel.js';
+
 const ORG_ID = '22Pa5G229Dc7';
 const ORG_NAME = 'TenanTurn LLC';
 const ENDPOINT = 'https://api.jobtread.com/pave';
@@ -148,6 +150,50 @@ function attachCostItems(documents, costItems) {
   };
 }
 
+function compactAudit(apiResponse, start, end) {
+  const m = buildForensicModel(normalize(apiResponse), start, end);
+  return {
+    trust: m.trust,
+    criticalCount: m.criticalCount,
+    reviewCount: m.reviewCount,
+    infoCount: m.infoCount,
+    exceptions: m.exceptions,
+    sales: {
+      won: m.salesWon,
+      wins: m.wins.map(j => ({ job: j.job.name, value: j.baseApproval?.priceWithTax || 0, pm: j.src.pm, source: j.src.workSource })),
+      losses: m.losses.map(j => j.job.name),
+      pending: m.pendingNew.map(j => j.job.name),
+      winRate: m.winRate
+    },
+    ops: m.current.map(j => ({ job: j.job.name, stage: j.stage, customer: j.src.billingCustomer, source: j.src.workSource, pm: j.src.pm, unbilled: j.unbilledContracted, economicsStatus: j.economicsStatus })),
+    finance: {
+      periodBilled: m.periodBilled,
+      customerPaymentsApplied: m.customerPaymentsApplied,
+      verifiedCashIn: m.verifiedCashIn,
+      verifiedCashOut: m.verifiedCashOut,
+      ar: m.finance.ar,
+      ap: m.finance.ap,
+      reconciledGP: m.reconciledGP,
+      provisionalGP: m.provisionalGP
+    },
+    jobs: m.jobs.map(j => ({
+      job: j.job.name,
+      stage: j.stage,
+      economicsStatus: j.economicsStatus,
+      billedProduction: j.billedProduction,
+      actualProductionCost: j.actualProductionCost,
+      passCost: j.passCost,
+      billedPass: j.billedPass,
+      feeCost: j.feeCost,
+      customerRefundCost: j.customerRefundCost,
+      profit: j.profit,
+      margin: j.margin,
+      source: j.src.workSource,
+      pm: j.src.pm
+    }))
+  };
+}
+
 export default async function handler(req, res) {
   const grantKey = process.env.JOBTREAD_GRANT_KEY;
   if (!grantKey) return res.status(503).json({ ok: false, code: 'JOBTREAD_NOT_CONFIGURED', error: 'JOBTREAD_GRANT_KEY is not configured for this Vercel project.' });
@@ -169,13 +215,21 @@ export default async function handler(req, res) {
     const payments = await fetchPaged(grantKey, 'payments', paymentConnection);
     const documentPayments = await fetchPaged(grantKey, 'documentPayments', documentPaymentConnection);
 
-    return res.status(200).json({
+    const apiResponse = {
       ok: true,
       fetchedAt: new Date().toISOString(),
       organizationId: org.id,
       organizationName: org.name,
       payload: { organization: { jobs, documents, comments, dailyLogs, tasks, payments, documentPayments } }
-    });
+    };
+
+    if (String(req.query?.audit || '') === '1') {
+      const start = String(req.query?.start || '2026-08-31');
+      const end = String(req.query?.end || '2026-09-06');
+      return res.status(200).json({ ok: true, fetchedAt: apiResponse.fetchedAt, organizationId: org.id, organizationName: org.name, audit: compactAudit(apiResponse, start, end) });
+    }
+
+    return res.status(200).json(apiResponse);
   } catch (error) {
     return res.status(500).json({ ok: false, error: error?.message || 'JobTread request failed' });
   }
