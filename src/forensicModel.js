@@ -95,31 +95,53 @@ function documentLineTotal(doc) {
 }
 function documentTotal(doc) { return doc.type?.startsWith('customer') ? Number(doc.priceWithTax || 0) : Number(doc.cost || 0); }
 
+function sourceScopeScore(job, c) {
+  const j = cleanName(job?.name || ''), t = cleanName(c?.message || '');
+  let score = 10;
+  const specialized = [
+    ['tree', /\btree\b/], ['roof', /\broof\b/], ['siding', /\bsiding\b/], ['water heater', /water heater/]
+  ];
+  for (const [token, rx] of specialized) if (j.includes(token)) score += rx.test(t) ? 5 : -5;
+  if (/make ready|\bmr\b/.test(j)) score += /tree work|tree removal|\broof\b|\bsiding\b/.test(t) ? -3 : 1;
+  if (/\bpm\b/i.test(c?.message || '')) score += 2;
+  if (/316|blu\s*2|\bblu\b|\bsb\b|pmi|jn investments/i.test(c?.message || '')) score += 1;
+  return score;
+}
 function sourceComment(job, jobComments, commentsById) {
   const ref = String(job?.description || '').match(/org comment\s+([A-Za-z0-9]+)/i)?.[1];
   if (ref && commentsById[ref]?.isPinned) return commentsById[ref];
-  return (jobComments || []).filter(c => c.isPinned && /\bpm\b/i.test(c.message || '')).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))[0] || null;
+  const local = (jobComments || []).filter(c => c.isPinned && /\bpm\b/i.test(c.message || '')).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))[0] || null;
+  if (local) return local;
+  const address = cleanName(String(job?.name || '').split(' - ')[0]);
+  if (address.length < 6) return null;
+  const candidates = Object.values(commentsById).filter(c => c?.isPinned && !c?.job?.id && cleanName(c.message || '').includes(address)).map(c => ({ c, score: sourceScopeScore(job, c) })).sort((a, b) => b.score - a.score || new Date(a.c.createdAt) - new Date(b.c.createdAt));
+  if (!candidates.length || candidates[0].score < 9) return null;
+  if (candidates[1] && candidates[0].score === candidates[1].score) return null;
+  return candidates[0].c;
 }
 function titleCase(s) { return String(s || '').toLowerCase().replace(/\b[a-z]/g, m => m.toUpperCase()); }
 function sourceIdentity(job, jobComments, commentsById) {
   const c = sourceComment(job, jobComments, commentsById);
   const text = c?.message || job?.description || '';
   const pmLine = text.split(/\r?\n/).find(l => /\bpm\b/i.test(l)) || '';
+  const sourceProbe = pmLine || text.slice(0, 800);
   let workSource = 'Unknown';
-  if (/316/i.test(pmLine)) workSource = '316 Rentals';
-  else if (/blu\s*2|\bblu\b/i.test(pmLine)) workSource = 'Blu / Blu 2';
-  else if (/\bsb\b|sb investments/i.test(pmLine)) workSource = 'SB Investments';
-  else if (/\bpmi\b/i.test(pmLine)) workSource = 'PMI';
-  else if (/\bjn\b/i.test(pmLine)) workSource = 'JN Investments';
+  if (/316/i.test(sourceProbe)) workSource = '316 Rentals';
+  else if (/blu\s*2|\bblu\b/i.test(sourceProbe)) workSource = 'Blu / Blu 2';
+  else if (/\bsb\b|sb investments/i.test(sourceProbe)) workSource = 'SB Investments';
+  else if (/\bpmi\b/i.test(sourceProbe)) workSource = 'PMI';
+  else if (/\bjn\b|jn investments/i.test(sourceProbe)) workSource = 'JN Investments';
   let pm = 'Unattributed';
   for (const n of knownPMs) if (new RegExp(`\\b${n}(?=\\b|\\d)|${n}(?=316\\b)`, 'i').test(pmLine)) { pm = n; break; }
   if (pm === 'Unattributed' && pmLine) {
+    const stop = new Set(['with','rentals','rental','property','manager','management','notes','note','this','that','conf','confirmed','customer','owner','pmi','investments','investment','homes','home']);
     const stripped = pmLine.replace(/\bpm\b\s*[:=-]?/i, ' ').replace(/\b(?:316|blu\s*2|blu2|blu|sb investments|sb|pmi|jn investments|jn)\b/ig, ' ').replace(/\d+/g, ' ').replace(/[^a-z]+/ig, ' ').trim();
-    const candidate = stripped.split(/\s+/).find(x => x.length >= 2);
+    const candidate = stripped.split(/\s+/).find(x => x.length >= 2 && !stop.has(x.toLowerCase()));
     if (candidate) pm = titleCase(candidate);
   }
+  if (pm === 'Unattributed' && (workSource === 'Blu / Blu 2' || workSource === 'SB Investments')) pm = 'Brandon';
   const billingCustomer = job?.location?.account?.name || 'Unknown';
-  const operationallyAuthorized = !!c && /316|blu\s*2|\bblu\b|\bsb\b|sb investments/i.test(pmLine);
+  const operationallyAuthorized = !!c && /316|blu\s*2|\bblu\b|\bsb\b|sb investments/i.test(sourceProbe);
   return { pm, workSource, billingCustomer, sourceCommentId: c?.id || null, sourceText: text, operationallyAuthorized };
 }
 function operationalEvidence(job, comments, logs) {
@@ -156,7 +178,7 @@ function cashInClass(p) {
   const t = paymentText(p);
   if (isCorrectiveDeposit(p)) return 'confirmed';
   if (/net (?:deposit|deposited|received)|\bdeposited\b|\bedeposit\b|mobile deposit|check[^.]{0,80}deposited|funded[^.]{0,100}(?:tenanturn|6268|1294)|received[^.]{0,80}(?:tenanturn|6268|1294)/i.test(t)) return 'confirmed';
-  if (/appfolio|instant pay/i.test(t) && /tenanturn|1294|6268|initiated|vendor payment|payment/i.test(t)) return 'directed';
+  if (/appfolio|instant pay|^instant\b/i.test(t) && /paid|payment|reimburse|instant|initiated/i.test(t)) return 'directed';
   if (/\bcheck\b|meritrust|businesspro|1294|6268|tenanturn/i.test(t)) return 'confirmed';
   return 'unverified';
 }
@@ -288,7 +310,18 @@ export function buildModel(data, start, end) {
       const reason = refundReason(d, dpRowsByDoc[d.id]);
       const accountLooksCustomer = d.account?.type === 'customer' || d.account?.name === x.job.location?.account?.name || /316 rentals|1439 homes|jn investments|blu\s*2|\bblu\b|sb investments/i.test(d.account?.name || '');
       const customerRefund = !!reason && accountLooksCustomer;
-      for (const e of entries(d, 'cost')) {
+      let billEntries = entries(d, 'cost');
+      billEntries = billEntries.map(e => {
+        if (e.pass || !e.strong || (commitByKey[e.key] || 0) > TOL) return e;
+        const candidates = x.vendorOrders.filter(o => o.account?.name === d.account?.name).flatMap(o => entries(o, 'cost')).filter(v => !v.pass && Math.abs(v.amount - e.amount) <= TOL && cleanName(v.item?.name || '') === cleanName(e.item?.name || ''));
+        const unique = [...new Map(candidates.map(v => [v.key, v])).values()];
+        if (unique.length === 1) {
+          push(x.job, 'Info', 'VENDOR_SCOPE_RELINKED', `${d.fullName}: ${money(e.amount)} matched the sole same-vendor/same-amount work-order line despite JobTread assigning a different cost-item ID.`);
+          return { ...e, key: unique[0].key, strong: true, weak: false };
+        }
+        return e;
+      });
+      for (const e of billEntries) {
         if (e.pass) { passCost += e.amount; continue; }
         if (customerRefund) { customerRefundCost += e.amount; continue; }
         add(actualByKey, e.key, e.amount); recordWeak(weakActual, e, d); const vn = d.account?.name || 'Unknown'; vendorActualByKey[vn] ||= {}; add(vendorActualByKey[vn], e.key, e.amount);
@@ -345,10 +378,11 @@ export function buildModel(data, start, end) {
   for (const p of payments) {
     const arithmeticGap = Number(p.amount || 0) - Number(p.amountApplied || 0) - Number(p.amountUnapplied || 0);
     if (Math.abs(arithmeticGap) > TOL) push({ name: p.account?.name || 'Cash ledger' }, 'Critical', 'PAYMENT_ARITHMETIC', `${localDate(p.paidAt) || '—'} ${money(p.amount)} does not equal applied + unapplied.`);
-    const correction = findCorrection(p, payments);
+    const correction = findCorrection(p, payments), cashClass = cashInClass(p);
     if (isBadMisroute(p)) push({ name: p.account?.name || 'Cash ledger' }, correction ? 'Info' : 'Critical', correction ? 'RESOLVED_CASH_MISROUTE' : 'CASH_MISROUTE', `${localDate(p.paidAt) || '—'} ${money(p.amount)} was routed away from TenanTurn${correction ? ` and corrected on ${localDate(correction.paidAt)}` : ''}.`);
     else if (isReturnedEvent(p)) push({ name: p.account?.name || 'Cash ledger' }, correction ? 'Info' : 'Review', correction ? 'RESOLVED_RETURNED_PAYMENT' : 'RETURNED_PAYMENT', `${localDate(p.paidAt) || '—'} ${money(p.amount)} returned/reversed${correction ? ` and was successfully replaced on ${localDate(correction.paidAt)}` : ''}.`);
-    else if (p.type === 'credit' && cashInClass(p) === 'unverified') push({ name: p.account?.name || 'Cash ledger' }, 'Review', 'CASH_DESTINATION_UNVERIFIED', `${localDate(p.paidAt) || '—'} credit ${money(p.amount)} has insufficient evidence it reached or is headed to TenanTurn.`);
+    else if (p.type === 'credit' && cashClass === 'directed') push({ name: p.account?.name || 'Cash ledger' }, 'Info', 'CASH_ON_WAY', `${localDate(p.paidAt) || '—'} ${money(p.amount)} is supported as AppFolio/instant-payment money on the way, but not independently bank-settled.`);
+    else if (p.type === 'credit' && cashClass === 'unverified') push({ name: p.account?.name || 'Cash ledger' }, 'Review', 'CASH_DESTINATION_UNVERIFIED', `${localDate(p.paidAt) || '—'} credit ${money(p.amount)} has insufficient evidence it reached or is headed to TenanTurn.`);
     if (Number(p.amountUnapplied || 0) > TOL && !isCorrectiveDeposit(p) && !isReturnedEvent(p) && !correction) push({ name: p.account?.name || 'Cash ledger' }, 'Review', 'UNAPPLIED_CASH', `${localDate(p.paidAt) || '—'} ${money(p.amountUnapplied)} remains unapplied.`);
   }
 
