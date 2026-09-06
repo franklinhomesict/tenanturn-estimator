@@ -63,7 +63,7 @@ const costItemConnection = page => ({
   $: {
     size: 100,
     ...(page ? { page } : {}),
-    where: [[['document', 'id'], '!=', null]]
+    where: [['document', 'id'], '!=', null]
   },
   nodes: {
     id: {}, name: {}, description: {}, cost: {}, price: {}, priceWithTax: {}, quantity: {}, unitCost: {}, unitPrice: {},
