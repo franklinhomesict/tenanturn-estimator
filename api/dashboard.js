@@ -46,7 +46,7 @@ const jobConnection = page => ({
 
 const documentConnection = page => ({
   $: {
-    size: 20, ...(page ? { page } : {}),
+    size: 100, ...(page ? { page } : {}),
     where: { or: [['type', 'customerOrder'], ['type', 'customerInvoice'], ['type', 'vendorBill'], ['type', 'vendorOrder']] },
     sortBy: [{ field: 'createdAt', order: 'desc' }]
   },
@@ -54,15 +54,22 @@ const documentConnection = page => ({
     id: {}, type: {}, status: {}, createdAt: {}, issueDate: {}, closedAt: {}, signedAt: {}, includeInBudget: {},
     priceWithTax: {}, cost: {}, amountPaid: {}, balance: {}, fullName: {},
     job: { id: {}, number: {}, name: {} },
-    account: { id: {}, name: {}, type: {} },
-    costItems: {
-      $: { size: 50 },
-      nodes: {
-        id: {}, name: {}, description: {}, cost: {}, price: {}, priceWithTax: {}, quantity: {}, unitCost: {}, unitPrice: {},
-        jobCostItem: { id: {}, name: {} },
-        sourceCostItem: { id: {}, name: {} }
-      }
-    }
+    account: { id: {}, name: {}, type: {} }
+  },
+  nextPage: {}
+});
+
+const costItemConnection = page => ({
+  $: {
+    size: 100,
+    ...(page ? { page } : {}),
+    where: [[['document', 'id'], '!=', null]]
+  },
+  nodes: {
+    id: {}, name: {}, description: {}, cost: {}, price: {}, priceWithTax: {}, quantity: {}, unitCost: {}, unitPrice: {},
+    document: { id: {}, type: {}, fullName: {}, job: { id: {}, number: {}, name: {} } },
+    jobCostItem: { id: {}, name: {} },
+    sourceCostItem: { id: {}, name: {} }
   },
   nextPage: {}
 });
@@ -113,6 +120,34 @@ const documentPaymentConnection = page => ({
   nextPage: {}
 });
 
+function attachCostItems(documents, costItems) {
+  const byDocument = {};
+  for (const item of costItems.nodes || []) {
+    const documentId = item.document?.id;
+    if (!documentId) continue;
+    (byDocument[documentId] ||= []).push({
+      id: item.id,
+      name: item.name,
+      description: item.description,
+      cost: item.cost,
+      price: item.price,
+      priceWithTax: item.priceWithTax,
+      quantity: item.quantity,
+      unitCost: item.unitCost,
+      unitPrice: item.unitPrice,
+      jobCostItem: item.jobCostItem,
+      sourceCostItem: item.sourceCostItem
+    });
+  }
+  return {
+    nodes: (documents.nodes || []).map(doc => ({
+      ...doc,
+      costItems: { nodes: byDocument[doc.id] || [] }
+    })),
+    nextPage: null
+  };
+}
+
 export default async function handler(req, res) {
   const grantKey = process.env.JOBTREAD_GRANT_KEY;
   if (!grantKey) return res.status(503).json({ ok: false, code: 'JOBTREAD_NOT_CONFIGURED', error: 'JOBTREAD_GRANT_KEY is not configured for this Vercel project.' });
@@ -125,7 +160,9 @@ export default async function handler(req, res) {
     }
 
     const jobs = await fetchPaged(grantKey, 'jobs', jobConnection);
-    const documents = await fetchPaged(grantKey, 'documents', documentConnection);
+    const documentHeaders = await fetchPaged(grantKey, 'documents', documentConnection);
+    const costItems = await fetchPaged(grantKey, 'costItems', costItemConnection);
+    const documents = attachCostItems(documentHeaders, costItems);
     const comments = await fetchPaged(grantKey, 'comments', commentConnection);
     const dailyLogs = await fetchPaged(grantKey, 'dailyLogs', logConnection);
     const tasks = await fetchPaged(grantKey, 'tasks', taskConnection);
