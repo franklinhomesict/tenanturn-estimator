@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "test:forensic": "node --experimental-default-type=module scripts/forensic-self-test.mjs",
+    "build": "npm run test:forensic && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
