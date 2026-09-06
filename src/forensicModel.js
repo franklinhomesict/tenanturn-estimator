@@ -10,6 +10,7 @@ const prepayRx = /paid in advance|before work started|prepayment|paid up front|d
 const correctiveDepositRx = /reimbursement received from franklin homes|settling the misrouted|franklin repaid|correcting the misrouted|reimburse(?:d|ment).*from franklin/i;
 const postCloseNewScopeRx = /need (?:a couple|some|more).*done|more things done|new (?:work|scope)|additional (?:work|scope)|send me a list of everything you need done/i;
 const approvalRx = /\bapproved\b|\byes please\b|go ahead|customer (?:said|approved)|owner (?:said|approved)|called .* told him|send .* invoice|collect \$|pay .* \$/i;
+const structuredPmRx = /^\s*(?:notes?\s*[:=-]?\s*)?(?:pm|property manager)\s*[:=-]?\s*\S+/im;
 const TOL = 0.02;
 const TZ = 'America/Chicago';
 
@@ -38,8 +39,6 @@ const weakScopeKey = i => i?.name ? `NAME:${cleanName(i.name)}` : null;
 const lineRevenue = i => Number(i?.priceWithTax ?? i?.price ?? 0) || 0;
 const lineCost = i => Number(i?.cost ?? 0) || 0;
 
-// Pass-through is an accounting identity, not a word appearing somewhere in a long description.
-// Prefer the line/document name. Description is only supporting evidence for generic material lines.
 const isPassItem = i => {
   const name = String(i?.name || '');
   if (passRx.test(name)) return true;
@@ -98,19 +97,17 @@ function documentTotal(doc) { return doc.type?.startsWith('customer') ? Number(d
 function sourceScopeScore(job, c) {
   const j = cleanName(job?.name || ''), t = cleanName(c?.message || '');
   let score = 10;
-  const specialized = [
-    ['tree', /\btree\b/], ['roof', /\broof\b/], ['siding', /\bsiding\b/], ['water heater', /water heater/]
-  ];
+  const specialized = [['tree', /\btree\b/], ['roof', /\broof\b/], ['siding', /\bsiding\b/], ['water heater', /water heater/]];
   for (const [token, rx] of specialized) if (j.includes(token)) score += rx.test(t) ? 5 : -5;
   if (/make ready|\bmr\b/.test(j)) score += /tree work|tree removal|\broof\b|\bsiding\b/.test(t) ? -3 : 1;
-  if (/\bpm\b/i.test(c?.message || '')) score += 2;
+  if (structuredPmRx.test(c?.message || '')) score += 2;
   if (/316|blu\s*2|\bblu\b|\bsb\b|pmi|jn investments/i.test(c?.message || '')) score += 1;
   return score;
 }
 function sourceComment(job, jobComments, commentsById) {
   const ref = String(job?.description || '').match(/org comment\s+([A-Za-z0-9]+)/i)?.[1];
   if (ref && commentsById[ref]?.isPinned) return commentsById[ref];
-  const local = (jobComments || []).filter(c => c.isPinned && /\bpm\b/i.test(c.message || '')).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))[0] || null;
+  const local = (jobComments || []).filter(c => c.isPinned && structuredPmRx.test(c.message || '')).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))[0] || null;
   if (local) return local;
   const address = cleanName(String(job?.name || '').split(' - ')[0]);
   if (address.length < 6) return null;
@@ -123,24 +120,30 @@ function titleCase(s) { return String(s || '').toLowerCase().replace(/\b[a-z]/g,
 function sourceIdentity(job, jobComments, commentsById) {
   const c = sourceComment(job, jobComments, commentsById);
   const text = c?.message || job?.description || '';
-  const pmLine = text.split(/\r?\n/).find(l => /\bpm\b/i.test(l)) || '';
+  const pmLine = text.split(/\r?\n/).find(l => structuredPmRx.test(l)) || '';
   const sourceProbe = pmLine || text.slice(0, 800);
+  const billingCustomer = job?.location?.account?.name || 'Unknown';
   let workSource = 'Unknown';
   if (/316/i.test(sourceProbe)) workSource = '316 Rentals';
   else if (/blu\s*2|\bblu\b/i.test(sourceProbe)) workSource = 'Blu / Blu 2';
   else if (/\bsb\b|sb investments/i.test(sourceProbe)) workSource = 'SB Investments';
   else if (/\bpmi\b/i.test(sourceProbe)) workSource = 'PMI';
   else if (/\bjn\b|jn investments/i.test(sourceProbe)) workSource = 'JN Investments';
+  if (workSource === 'Unknown') {
+    if (/316/i.test(billingCustomer)) workSource = '316 Rentals';
+    else if (/^blu\s*2?$|\bblu\s*2?\b/i.test(billingCustomer)) workSource = 'Blu / Blu 2';
+    else if (/sb investments/i.test(billingCustomer)) workSource = 'SB Investments';
+    else if (/jn investments/i.test(billingCustomer)) workSource = 'JN Investments';
+  }
   let pm = 'Unattributed';
   for (const n of knownPMs) if (new RegExp(`\\b${n}(?=\\b|\\d)|${n}(?=316\\b)`, 'i').test(pmLine)) { pm = n; break; }
   if (pm === 'Unattributed' && pmLine) {
-    const stop = new Set(['with','rentals','rental','property','manager','management','notes','note','this','that','conf','confirmed','customer','owner','pmi','investments','investment','homes','home']);
-    const stripped = pmLine.replace(/\bpm\b\s*[:=-]?/i, ' ').replace(/\b(?:316|blu\s*2|blu2|blu|sb investments|sb|pmi|jn investments|jn)\b/ig, ' ').replace(/\d+/g, ' ').replace(/[^a-z]+/ig, ' ').trim();
+    const stop = new Set(['with','rentals','rental','property','manager','management','notes','note','this','that','conf','confirmed','customer','owner','pmi','investments','investment','homes','home','one','sent','send','be']);
+    const stripped = pmLine.replace(/^(?:\s*notes?\s*[:=-]?\s*)?(?:pm|property manager)\s*[:=-]?/i, ' ').replace(/\b(?:316|blu\s*2|blu2|blu|sb investments|sb|pmi|jn investments|jn)\b/ig, ' ').replace(/\d+/g, ' ').replace(/[^a-z]+/ig, ' ').trim();
     const candidate = stripped.split(/\s+/).find(x => x.length >= 2 && !stop.has(x.toLowerCase()));
     if (candidate) pm = titleCase(candidate);
   }
   if (pm === 'Unattributed' && (workSource === 'Blu / Blu 2' || workSource === 'SB Investments')) pm = 'Brandon';
-  const billingCustomer = job?.location?.account?.name || 'Unknown';
   const operationallyAuthorized = !!c && /316|blu\s*2|\bblu\b|\bsb\b|sb investments/i.test(sourceProbe);
   return { pm, workSource, billingCustomer, sourceCommentId: c?.id || null, sourceText: text, operationallyAuthorized };
 }
@@ -274,7 +277,7 @@ export function buildModel(data, start, end) {
     const narrative = `${x.job.description || ''} ${x.comments.map(c => c.message || '').join(' ')} ${x.logs.map(l => l.notes || '').join(' ')}`;
     const lossEvidence = lossRx.test(narrative), trueLoss = !baseApproval && latestBase?.status === 'denied' && lossEvidence, outcomeReview = !baseApproval && latestBase?.status === 'denied' && !lossEvidence;
     const src = sourceIdentity(x.job, x.comments, commentsById), ev = operationalEvidence(x.job, x.comments, x.logs);
-    if (/316/i.test(x.job.location?.account?.name || '') && src.pm === 'Unattributed') push(x.job, 'Review', 'PM_UNATTRIBUTED', '316 job has no resolvable original pinned PM scope.');
+    if (/316/i.test(x.job.location?.account?.name || '') && src.pm === 'Unattributed') push(x.job, x.job.closedOn ? 'Info' : 'Review', 'PM_UNATTRIBUTED', '316 job has no resolvable original pinned PM scope.');
 
     if (x.job.closedOn && ev.latest && new Date(ev.latest.at) > new Date(x.job.closedOn) && ev.latest.type === 'active') {
       const afterCloseText = x.comments.filter(c => new Date(c.createdAt) > new Date(x.job.closedOn)).map(c => c.message || '').join(' ');
