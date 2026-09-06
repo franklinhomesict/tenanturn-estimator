@@ -50,22 +50,24 @@ const documentConnection = page => ({
     sortBy: [{ field: 'createdAt', order: 'desc' }]
   },
   nodes: {
-    id: {}, type: {}, status: {}, createdAt: {}, issueDate: {}, closedAt: {}, signedAt: {},
+    id: {}, type: {}, status: {}, createdAt: {}, issueDate: {}, closedAt: {}, signedAt: {}, includeInBudget: {},
     priceWithTax: {}, cost: {}, amountPaid: {}, balance: {}, fullName: {},
     job: { id: {}, number: {}, name: {} }, account: { name: {} },
-    costItems: { $: { size: 100 }, nodes: { id: {}, name: {}, cost: {}, price: {}, quantity: {}, unitCost: {}, unitPrice: {}, description: {} } }
+    costItems: { $: { size: 100 }, nodes: { id: {}, name: {}, cost: {}, price: {}, priceWithTax: {}, quantity: {}, unitCost: {}, unitPrice: {}, description: {} } }
   },
   nextPage: {}
 });
 
 const commentConnection = page => ({
   $: { size: 100, ...(page ? { page } : {}), sortBy: [{ field: 'createdAt', order: 'desc' }] },
-  nodes: { createdAt: {}, message: {}, job: { id: {}, number: {}, name: {} } }, nextPage: {}
+  nodes: { id: {}, createdAt: {}, isPinned: {}, name: {}, message: {}, job: { id: {}, number: {}, name: {} } },
+  nextPage: {}
 });
 
 const logConnection = page => ({
   $: { size: 100, ...(page ? { page } : {}), sortBy: [{ field: 'date', order: 'desc' }] },
-  nodes: { id: {}, date: {}, notes: {}, job: { id: {}, number: {}, name: {} } }, nextPage: {}
+  nodes: { id: {}, date: {}, notes: {}, job: { id: {}, number: {}, name: {} } },
+  nextPage: {}
 });
 
 const taskConnection = page => ({
@@ -88,7 +90,7 @@ const documentPaymentConnection = page => ({
   nodes: {
     id: {}, amount: {},
     document: { id: {}, type: {}, status: {}, issueDate: {}, fullName: {}, job: { id: {}, number: {}, name: {} } },
-    payment: { id: {}, type: {}, amount: {}, paidAt: {}, account: { name: {} } }
+    payment: { id: {}, type: {}, amount: {}, paidAt: {}, description: {}, source: {}, account: { name: {} } }
   },
   nextPage: {}
 });
@@ -115,7 +117,10 @@ export default async function handler(req, res) {
     ]);
 
     return res.status(200).json({
-      ok: true, fetchedAt: new Date().toISOString(), organizationId: org.id, organizationName: org.name,
+      ok: true,
+      fetchedAt: new Date().toISOString(),
+      organizationId: org.id,
+      organizationName: org.name,
       payload: { organization: { jobs, documents, comments, dailyLogs, tasks, payments, documentPayments } }
     });
   } catch (error) {
