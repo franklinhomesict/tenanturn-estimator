@@ -4,7 +4,7 @@ const feeRx = /payment processing fee|instant pay/i;
 const changeRx = /change order/i;
 const creditRx = /\b(credit|refund)\b/i;
 const lossRx = /went with another|chose (?:a )?cheaper|another contractor|not moving forward|decided not to|declined (?:the )?(?:bid|work)|lost (?:the )?(?:job|bid)|owner chose|customer chose/i;
-const activeRx = /\b(work(?:ing)? today|work underway|in progress|installed|installing|demo(?:ing)?|painting|on site|onsite|crew (?:is|was) there|wrapping up|finishing|started work|starting work|materials delivered|delivered today)\b/i;
+const activeRx = /\b(work(?:ing)? today|work underway|in progress|installed|installing|demo(?:ing)?|painting|crew (?:is|was|are|were) (?:there|on site|onsite)|(?:he|they|we) (?:is|are|was|were)?\s*(?:on site|onsite)|wrapping up|finishing|started work|starting work|materials delivered|delivered today)\b/i;
 const wholeDoneRx = /\b(?:job|project) (?:is )?(?:complete|completed|finished)\b|\b(?:work|all work) (?:is )?(?:complete|completed|finished)\b|\ball done\b|\bready to bill\b|\bjob finished\b|\bwrapped up the job\b|\bcomplete and has been paid\b/i;
 const prepayRx = /paid in advance|before work started|prepayment|paid up front|deposit invoice|mobilization deposit/i;
 const correctiveDepositRx = /reimbursement received from franklin homes|settling the misrouted|franklin repaid|correcting the misrouted|reimburse(?:d|ment).*from franklin/i;
@@ -125,11 +125,12 @@ function sourceIdentity(job, jobComments, commentsById) {
   const billingCustomer = job?.location?.account?.name || 'Unknown';
   const allNarrative = `${job?.description || ''} ${(jobComments || []).map(x => x.message || '').join(' ')}`;
   let workSource = 'Unknown';
-  if (/316/i.test(sourceProbe)) workSource = '316 Rentals';
-  else if (/blu\s*2|\bblu\b/i.test(sourceProbe)) workSource = 'Blu / Blu 2';
-  else if (/\bsb\b|sb investments/i.test(sourceProbe)) workSource = 'SB Investments';
-  else if (/\bpmi\b/i.test(sourceProbe)) workSource = 'PMI';
+  const explicit316 = /\b(?:pm|property manager)\b[^\n]{0,50}316\b|\b316\s*(?:rentals?|pm)\b/i;
+  if (/\bpmi\b/i.test(sourceProbe)) workSource = 'PMI';
   else if (/\bjn\b|jn investments/i.test(sourceProbe)) workSource = 'JN Investments';
+  else if (/\bsb\b|sb investments/i.test(sourceProbe)) workSource = 'SB Investments';
+  else if (/blu\s*2|\bblu\b/i.test(sourceProbe)) workSource = 'Blu / Blu 2';
+  else if (explicit316.test(sourceProbe)) workSource = '316 Rentals';
   if (workSource === 'Unknown') {
     if (/316/i.test(billingCustomer)) workSource = '316 Rentals';
     else if (/^blu\s*2?$|\bblu\s*2?\b/i.test(billingCustomer)) workSource = 'Blu / Blu 2';
@@ -157,8 +158,8 @@ function isWholeDoneText(text) {
   const t = String(text || '').trim();
   if (!t) return false;
   if (/\b(?:except|besides|still need|still needs|remaining|left to|issue(?:s)? with|not complete|not done|but\s+(?:still|not))\b/i.test(t)) return false;
+  if (/\b(?:phase|stage)\s*\d+\b/i.test(t) && !/\b(?:job|project|all work)\b/i.test(t)) return false;
   const explicitWhole = wholeDoneRx.test(t);
-  if (/\b(?:phase|stage)\s*\d+\b/i.test(t) && !explicitWhole) return false;
   if (/\b(?:flooring|lvp|plumbing|paint(?:ing)?|room|toilet|vanity|door|trim|scope|portion|part)\b[^.\n]{0,60}\b(?:done|complete|completed|finished)\b/i.test(t) && !explicitWhole) return false;
   if (/^(?:done|complete|completed|finished)[.!\s👍]*$/i.test(t)) return true;
   return explicitWhole;
@@ -166,6 +167,7 @@ function isWholeDoneText(text) {
 function activityBelongsToJob(job, text) {
   const t = String(text || '');
   if (!activeRx.test(t)) return false;
+  if (/\b(?:print|post|upload|attach|link|job sheet|work order)\b[^.\n]{0,50}\b(?:on site|onsite|delivered)\b/i.test(t)) return false;
   const current = cleanName(String(job?.name || '').split(' - ')[0]);
   const refs = [...t.matchAll(/\b(?:finishing|working|starting|started|wrapping up|on site|onsite)\b[^.\n]{0,80}\b(?:at|on)\s+(\d{2,5}\s+[A-Za-z][A-Za-z0-9 .'-]{1,40})/ig)].map(m => cleanName(m[1]));
   if (refs.length && current && refs.every(r => r && !r.includes(current) && !current.includes(r))) return false;
@@ -305,8 +307,12 @@ export function buildModel(data, start, end) {
 
     if (x.job.closedOn && ev.latest && new Date(ev.latest.at) > new Date(x.job.closedOn) && ev.latest.type === 'active') {
       const afterCloseText = x.comments.filter(c => new Date(c.createdAt) > new Date(x.job.closedOn)).map(c => c.message || '').join(' ');
-      if (postCloseNewScopeRx.test(afterCloseText)) push(x.job, 'Review', 'POST_CLOSE_NEW_SCOPE', 'New work was requested after the original job closed; keep it out of the closed economics and open a new scope/job if pursued.');
-      else push(x.job, 'Critical', 'ACTIVE_AFTER_JOB_CLOSED', 'Production evidence exists after the JobTread close date.');
+      if (postCloseNewScopeRx.test(afterCloseText)) {
+        const address = cleanName(String(x.job.name || '').split(' - ')[0]);
+        const followOn = (data.jobs || []).find(j => j.id !== x.job.id && cleanName(String(j.name || '').split(' - ')[0]) === address && (!j.createdAt || new Date(j.createdAt) > new Date(x.job.closedOn)));
+        if (followOn) push(x.job, 'Info', 'FOLLOW_ON_SCOPE_SEPARATED', `Later scope was captured separately as ${followOn.name}; original closed-job economics remain isolated.`);
+        else push(x.job, 'Review', 'POST_CLOSE_NEW_SCOPE', 'New work was requested after the original job closed; keep it out of the closed economics and open a new scope/job if pursued.');
+      } else push(x.job, 'Critical', 'ACTIVE_AFTER_JOB_CLOSED', 'Production evidence exists after the JobTread close date.');
     }
 
     const contractByKey = {}, billedByKey = {}, actualByKey = {}, commitByKey = {}, vendorCommitByKey = {}, vendorActualByKey = {}, billedMeta = {};
