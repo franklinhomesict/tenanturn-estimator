@@ -1,4 +1,4 @@
-const knownPMs = ['Ben', 'Jessica', 'Lexi', 'Melinda', 'Brandon', 'Brad'];
+const knownPMs = ['Ben', 'Jessica', 'Lexi', 'Melinda', 'Brandon', 'Brad', 'Ally'];
 const passRx = /\b(reimbursement|reimbursements|reimbursable|pass[- ]?through)\b/i;
 const feeRx = /payment processing fee|instant pay/i;
 const changeRx = /change order/i;
@@ -123,6 +123,7 @@ function sourceIdentity(job, jobComments, commentsById) {
   const pmLine = text.split(/\r?\n/).find(l => structuredPmRx.test(l)) || '';
   const sourceProbe = pmLine || text.slice(0, 800);
   const billingCustomer = job?.location?.account?.name || 'Unknown';
+  const allNarrative = `${job?.description || ''} ${(jobComments || []).map(x => x.message || '').join(' ')}`;
   let workSource = 'Unknown';
   if (/316/i.test(sourceProbe)) workSource = '316 Rentals';
   else if (/blu\s*2|\bblu\b/i.test(sourceProbe)) workSource = 'Blu / Blu 2';
@@ -143,8 +144,12 @@ function sourceIdentity(job, jobComments, commentsById) {
     const candidate = stripped.split(/\s+/).find(x => x.length >= 2 && !stop.has(x.toLowerCase()));
     if (candidate) pm = titleCase(candidate);
   }
+  if (pm === 'Unattributed' && /\bPM\s+Melinda\s+Haslam\b/i.test(job?.description || '')) pm = 'Melinda';
+  if (pm === 'Unattributed' && /(?:\bJessica,\s*(?:touching|following)|\bJessica\b.{0,80}\bproposal\b|\btake this to the owner\b)/i.test(allNarrative)) pm = 'Jessica';
+  if (pm === 'Unattributed' && /(?:Ally feedback|confirmed with Ally|Ally viewed|sent .* Ally)/i.test(allNarrative)) pm = 'Ally';
+  if (!job?.closedOn && (pm === 'Melinda' || /taken over for Melinda|Melinda (?:has )?(?:left|quit)|replaced Melinda/i.test(allNarrative))) pm = 'Ben';
   if (pm === 'Unattributed' && (workSource === 'Blu / Blu 2' || workSource === 'SB Investments')) pm = 'Brandon';
-  const operationallyAuthorized = !!c && /316|blu\s*2|\bblu\b|\bsb\b|sb investments/i.test(sourceProbe);
+  const operationallyAuthorized = !!c && pm === 'Brandon' && (workSource === 'Blu / Blu 2' || workSource === 'SB Investments');
   return { pm, workSource, billingCustomer, sourceCommentId: c?.id || null, sourceText: text, operationallyAuthorized };
 }
 function operationalEvidence(job, comments, logs) {
@@ -277,7 +282,7 @@ export function buildModel(data, start, end) {
     const narrative = `${x.job.description || ''} ${x.comments.map(c => c.message || '').join(' ')} ${x.logs.map(l => l.notes || '').join(' ')}`;
     const lossEvidence = lossRx.test(narrative), trueLoss = !baseApproval && latestBase?.status === 'denied' && lossEvidence, outcomeReview = !baseApproval && latestBase?.status === 'denied' && !lossEvidence;
     const src = sourceIdentity(x.job, x.comments, commentsById), ev = operationalEvidence(x.job, x.comments, x.logs);
-    if (/316/i.test(x.job.location?.account?.name || '') && src.pm === 'Unattributed') push(x.job, x.job.closedOn ? 'Info' : 'Review', 'PM_UNATTRIBUTED', '316 job has no resolvable original pinned PM scope.');
+    if (/316/i.test(x.job.location?.account?.name || '') && src.pm === 'Unattributed') push(x.job, x.job.closedOn ? 'Info' : 'Review', 'PM_UNATTRIBUTED', '316 job has no defensible current PM attribution.');
 
     if (x.job.closedOn && ev.latest && new Date(ev.latest.at) > new Date(x.job.closedOn) && ev.latest.type === 'active') {
       const afterCloseText = x.comments.filter(c => new Date(c.createdAt) > new Date(x.job.closedOn)).map(c => c.message || '').join(' ');
@@ -355,7 +360,7 @@ export function buildModel(data, start, end) {
     let unbilledContracted = 0; for (const [k, c] of Object.entries(contractByKey)) unbilledContracted += Math.max(0, c - (billedByKey[k] || 0));
     const remainingCommitByVendor = {}; for (const [vn, keyed] of Object.entries(vendorCommitByKey)) for (const [k, c] of Object.entries(keyed)) add(remainingCommitByVendor, vn, Math.max(0, c - (vendorActualByKey[vn]?.[k] || 0)));
     const activeVendorNames = Object.keys(vendorCommitByKey), hasOperationalApproval = !!baseApproval || src.operationallyAuthorized;
-    let stage = 'No Approved Work';
+    let stage = pendingNew && !hasOperationalApproval ? 'Pending Bid' : 'No Approved Work';
     if (hasOperationalApproval && !x.job.closedOn) {
       if (!activeVendorNames.length && !ev.started) stage = 'Backlog';
       else if (activeVendorNames.length && !ev.started) stage = 'Assigned / Not Started';
