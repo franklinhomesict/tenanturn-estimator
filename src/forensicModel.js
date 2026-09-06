@@ -183,7 +183,6 @@ export function buildModel(data, start, end) {
 
   for (const x of Object.values(by)) {
     const approved = x.orders.filter(d => d.status === 'approved');
-    const denied = x.orders.filter(d => d.status === 'denied');
     const pending = x.orders.filter(d => d.status === 'pending');
     const approvedBase = approved.filter(d => !isChange(d));
     const approvedChanges = approved.filter(isChange);
@@ -258,3 +257,5 @@ export function buildModel(data, start, end) {
   const critical=exceptions.filter(e=>e.severity==='Critical');
   return {jobs,exceptions:exceptions.sort((a,b)=>a.severity===b.severity?0:a.severity==='Critical'?-1:b.severity==='Critical'?1:a.severity==='Review'?-1:1),trust:critical.length?'BLOCKED':exceptions.some(e=>e.severity==='Review')?'REVIEW':'RECONCILED',sales:{wins,losses,pendingNew,approvedChanges,pendingChanges,winRate,salesWon},finance:{periodBilled,periodPass,verifiedCashIn,verifiedCashOut,ar:sum(arDocs,d=>d.balance),ap:sum(apDocs,d=>d.balance)},ops:{current},people:{vendors,vendorCapacityModel}};
 }
+
+export const buildForensicModel = buildModel;
