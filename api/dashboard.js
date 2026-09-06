@@ -37,8 +37,9 @@ const jobConnection = page => ({
   $: { size: 100, ...(page ? { page } : {}), sortBy: [{ field: 'createdAt', order: 'desc' }] },
   nodes: {
     id: {}, number: {}, name: {}, description: {}, createdAt: {}, closedOn: {},
-    projectedCost: {}, actualCost: {}, taskSummary: { started: {}, completed: {}, unstarted: {}, startDate: {}, endDate: {} },
-    location: { account: { name: {} }, contact: { name: {} } }
+    projectedCost: {}, actualCost: {},
+    taskSummary: { started: {}, completed: {}, unstarted: {}, startDate: {}, endDate: {} },
+    location: { account: { id: {}, name: {}, type: {} }, contact: { name: {} } }
   },
   nextPage: {}
 });
@@ -52,8 +53,16 @@ const documentConnection = page => ({
   nodes: {
     id: {}, type: {}, status: {}, createdAt: {}, issueDate: {}, closedAt: {}, signedAt: {}, includeInBudget: {},
     priceWithTax: {}, cost: {}, amountPaid: {}, balance: {}, fullName: {},
-    job: { id: {}, number: {}, name: {} }, account: { name: {} },
-    costItems: { $: { size: 100 }, nodes: { id: {}, name: {}, cost: {}, price: {}, priceWithTax: {}, quantity: {}, unitCost: {}, unitPrice: {}, description: {} } }
+    job: { id: {}, number: {}, name: {} },
+    account: { id: {}, name: {}, type: {} },
+    costItems: {
+      $: { size: 100 },
+      nodes: {
+        id: {}, name: {}, description: {}, cost: {}, price: {}, priceWithTax: {}, quantity: {}, unitCost: {}, unitPrice: {},
+        jobCostItem: { id: {}, name: {} },
+        sourceCostItem: { id: {}, name: {} }
+      }
+    }
   },
   nextPage: {}
 });
@@ -74,14 +83,17 @@ const taskConnection = page => ({
   $: { size: 100, ...(page ? { page } : {}), sortBy: [{ field: 'startDate', order: 'asc' }] },
   nodes: {
     id: {}, name: {}, startDate: {}, endDate: {}, startsAt: {}, endsAt: {}, progress: {}, completed: {},
-    account: { name: {} }, job: { id: {}, number: {}, name: {} }
+    account: { id: {}, name: {}, type: {} }, job: { id: {}, number: {}, name: {} }
   },
   nextPage: {}
 });
 
 const paymentConnection = page => ({
   $: { size: 100, ...(page ? { page } : {}), sortBy: [{ field: 'paidAt', order: 'desc' }] },
-  nodes: { id: {}, type: {}, amount: {}, feeAmount: {}, paidAt: {}, source: {}, description: {}, account: { name: {} } },
+  nodes: {
+    id: {}, type: {}, amount: {}, amountApplied: {}, amountUnapplied: {}, feeAmount: {}, paidAt: {}, source: {}, description: {},
+    account: { id: {}, name: {}, type: {} }
+  },
   nextPage: {}
 });
 
@@ -89,8 +101,14 @@ const documentPaymentConnection = page => ({
   $: { size: 100, ...(page ? { page } : {}) },
   nodes: {
     id: {}, amount: {},
-    document: { id: {}, type: {}, status: {}, issueDate: {}, fullName: {}, job: { id: {}, number: {}, name: {} } },
-    payment: { id: {}, type: {}, amount: {}, paidAt: {}, description: {}, source: {}, account: { name: {} } }
+    document: {
+      id: {}, type: {}, status: {}, issueDate: {}, fullName: {}, balance: {}, amountPaid: {},
+      job: { id: {}, number: {}, name: {} }, account: { id: {}, name: {}, type: {} }
+    },
+    payment: {
+      id: {}, type: {}, amount: {}, amountApplied: {}, amountUnapplied: {}, paidAt: {}, description: {}, source: {},
+      account: { id: {}, name: {}, type: {} }
+    }
   },
   nextPage: {}
 });
