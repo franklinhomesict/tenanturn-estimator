@@ -123,7 +123,15 @@ function operationalEvidence(job, comments, logs) {
 function isBadMisroute(p) { const t=`${p?.source||''} ${p?.description||''}`; if (correctiveDepositRx.test(t)) return false; return badMisrouteRx.test(t); }
 function isVerifiedCashIn(p) { const t=`${p?.source||''} ${p?.description||''}`; if(p?.type!=='credit'||returnedRx.test(t)||isBadMisroute(p)) return false; return /1294|6268|tenanturn|deposit|edeposit|\bcheck\b|businesspro|meritrust|appfolio/i.test(t); }
 function isVerifiedCashOut(p) { const t=`${p?.source||''} ${p?.description||''}`; if(p?.type!=='debit'||returnedRx.test(t)||Number(p?.amountApplied||0)<=TOL) return false; return /1294|6268|tenanturn|businesspro|meritrust|\bach\b|\bcheck\b|pay a person|bank transfer|withheld at source|netted/i.test(t); }
-function findCorrection(p,payments) { const acct=p.account?.name||''; const amt=Number(p.amount||0); return (payments||[]).find(q=>q.id!==p.id&&q.account?.name===acct&&Math.abs(Number(q.amount||0)-amt)<=TOL&&new Date(q.paidAt)>new Date(p.paidAt)&&((p.type==='debit'&&q.type==='debit'&&Number(q.amountApplied||0)>TOL&&!returnedRx.test(`${q.source||''} ${q.description||''}`))||(p.type==='credit'&&q.type==='credit'&&isVerifiedCashIn(q)))); }
+function findCorrection(p,payments) {
+  const acct=p.account?.name||'',amt=Number(p.amount||0),badMisroute=isBadMisroute(p);
+  return (payments||[]).find(q=>{
+    if(q.id===p.id||Math.abs(Number(q.amount||0)-amt)>TOL||new Date(q.paidAt)<=new Date(p.paidAt)) return false;
+    const qt=`${q.source||''} ${q.description||''}`;
+    if(badMisroute) return q.type==='credit'&&isVerifiedCashIn(q)&&correctiveDepositRx.test(qt);
+    return q.account?.name===acct&&p.type==='debit'&&q.type==='debit'&&Number(q.amountApplied||0)>TOL&&!returnedRx.test(qt);
+  });
+}
 function completionDateForJob(j) { if(j.job?.closedOn) return j.job.closedOn; if(j.ev?.done&&j.ev?.latest?.at) return j.ev.latest.at; return null; }
 function weeksBetween(a,b){ return Math.max(1,Math.ceil((day(b)-day(a))/(7*86400000))+1); }
 function buildVendorCapacity(jobs,asOf){
