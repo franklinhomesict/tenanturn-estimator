@@ -5,7 +5,7 @@ const changeRx = /change order/i;
 const creditRx = /\b(credit|refund)\b/i;
 const lossRx = /went with another|chose (?:a )?cheaper|another contractor|not moving forward|decided not to|declined (?:the )?(?:bid|work)|lost (?:the )?(?:job|bid)|owner chose|customer chose/i;
 const activeRx = /\b(work(?:ing)? today|work underway|in progress|installed|installing|demo(?:ing)?|painting|on site|onsite|crew (?:is|was) there|wrapping up|finishing|started work|starting work|materials delivered|delivered today)\b/i;
-const wholeDoneRx = /\b(job (?:is )?complete|work (?:is )?complete|all work (?:is )?complete|all done|ready to bill|job finished|wrapped up the job|complete and has been paid|\bdone\b)\b/i;
+const wholeDoneRx = /\b(?:job|project) (?:is )?(?:complete|completed|finished)\b|\b(?:work|all work) (?:is )?(?:complete|completed|finished)\b|\ball done\b|\bready to bill\b|\bjob finished\b|\bwrapped up the job\b|\bcomplete and has been paid\b/i;
 const prepayRx = /paid in advance|before work started|prepayment|paid up front|deposit invoice|mobilization deposit/i;
 const correctiveDepositRx = /reimbursement received from franklin homes|settling the misrouted|franklin repaid|correcting the misrouted|reimburse(?:d|ment).*from franklin/i;
 const postCloseNewScopeRx = /need (?:a couple|some|more).*done|more things done|new (?:work|scope)|additional (?:work|scope)|send me a list of everything you need done/i;
@@ -147,22 +147,41 @@ function sourceIdentity(job, jobComments, commentsById) {
   if (pm === 'Unattributed' && /\bPM\s+Melinda\s+Haslam\b/i.test(job?.description || '')) pm = 'Melinda';
   if (pm === 'Unattributed' && /(?:\bJessica,\s*(?:touching|following)|\bJessica\b.{0,80}\bproposal\b|\btake this to the owner\b)/i.test(allNarrative)) pm = 'Jessica';
   if (pm === 'Unattributed' && /(?:Ally feedback|confirmed with Ally|Ally viewed|sent .* Ally)/i.test(allNarrative)) pm = 'Ally';
+  if (/since you own this one/i.test(allNarrative)) { pm = 'Brandon'; if (workSource === '316 Rentals') workSource = 'Brandon-owned'; }
   if (!job?.closedOn && (pm === 'Melinda' || /taken over for Melinda|Melinda (?:has )?(?:left|quit)|replaced Melinda/i.test(allNarrative))) pm = 'Ben';
   if (pm === 'Unattributed' && (workSource === 'Blu / Blu 2' || workSource === 'SB Investments')) pm = 'Brandon';
   const operationallyAuthorized = !!c && pm === 'Brandon' && (workSource === 'Blu / Blu 2' || workSource === 'SB Investments');
   return { pm, workSource, billingCustomer, sourceCommentId: c?.id || null, sourceText: text, operationallyAuthorized };
 }
+function isWholeDoneText(text) {
+  const t = String(text || '').trim();
+  if (!t) return false;
+  if (/\b(?:except|besides|still need|still needs|remaining|left to|issue(?:s)? with|not complete|not done|but\s+(?:still|not))\b/i.test(t)) return false;
+  const explicitWhole = wholeDoneRx.test(t);
+  if (/\b(?:phase|stage)\s*\d+\b/i.test(t) && !explicitWhole) return false;
+  if (/\b(?:flooring|lvp|plumbing|paint(?:ing)?|room|toilet|vanity|door|trim|scope|portion|part)\b[^.\n]{0,60}\b(?:done|complete|completed|finished)\b/i.test(t) && !explicitWhole) return false;
+  if (/^(?:done|complete|completed|finished)[.!\s👍]*$/i.test(t)) return true;
+  return explicitWhole;
+}
+function activityBelongsToJob(job, text) {
+  const t = String(text || '');
+  if (!activeRx.test(t)) return false;
+  const current = cleanName(String(job?.name || '').split(' - ')[0]);
+  const refs = [...t.matchAll(/\b(?:finishing|working|starting|started|wrapping up|on site|onsite)\b[^.\n]{0,80}\b(?:at|on)\s+(\d{2,5}\s+[A-Za-z][A-Za-z0-9 .'-]{1,40})/ig)].map(m => cleanName(m[1]));
+  if (refs.length && current && refs.every(r => r && !r.includes(current) && !current.includes(r))) return false;
+  return true;
+}
 function operationalEvidence(job, comments, logs) {
   const ops = [];
   for (const l of logs || []) if (l.date && String(l.notes || '').trim()) {
     const t = l.notes || '';
-    if (wholeDoneRx.test(t)) ops.push({ at: l.date, type: 'done', text: t, kind: 'log' });
-    else if (activeRx.test(t)) ops.push({ at: l.date, type: 'active', text: t, kind: 'log' });
+    if (isWholeDoneText(t)) ops.push({ at: l.date, type: 'done', text: t, kind: 'log' });
+    else if (activityBelongsToJob(job, t)) ops.push({ at: l.date, type: 'active', text: t, kind: 'log' });
   }
   for (const c of comments || []) {
     const t = c.message || '';
-    if (wholeDoneRx.test(t)) ops.push({ at: c.createdAt, type: 'done', text: t, kind: 'comment' });
-    else if (activeRx.test(t)) ops.push({ at: c.createdAt, type: 'active', text: t, kind: 'comment' });
+    if (isWholeDoneText(t)) ops.push({ at: c.createdAt, type: 'done', text: t, kind: 'comment' });
+    else if (activityBelongsToJob(job, t)) ops.push({ at: c.createdAt, type: 'active', text: t, kind: 'comment' });
   }
   ops.sort((a, b) => new Date(a.at) - new Date(b.at));
   const latest = ops.at(-1) || null;
