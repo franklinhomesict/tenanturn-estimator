@@ -15,7 +15,10 @@ const TZ = 'America/Chicago';
 export const money = n => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(Number(n || 0));
 export const pct = n => `${Number.isFinite(n) ? n.toFixed(1) : '0.0'}%`;
 export const sum = (a, f = x => x) => (a || []).reduce((t, x) => t + (Number(f(x)) || 0), 0);
-export const ymd = d => new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year:'numeric', month:'2-digit', day:'2-digit' }).format(d);
+export const ymd = d => {
+  const parts=new Intl.DateTimeFormat('en-US',{timeZone:TZ,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d);
+  const v=Object.fromEntries(parts.map(p=>[p.type,p.value])); return `${v.year}-${v.month}-${v.day}`;
+};
 const localDate = s => {
   if (!s) return null;
   if (/^\d{4}-\d{2}-\d{2}$/.test(String(s))) return String(s);
@@ -93,15 +96,15 @@ function sourceIdentity(job, jobComments, commentsById) {
   const text = c?.message || job?.description || '';
   const pmLine = text.split(/\r?\n/).find(l => /\bpm\b/i.test(l)) || '';
   let pm = 'Unattributed';
-  for (const n of knownPMs) if (new RegExp(`\\b${n}\\b`, 'i').test(pmLine)) { pm = n; break; }
+  for (const n of knownPMs) if (new RegExp(`\\b${n}(?=\\b|\\d)`, 'i').test(pmLine)) { pm = n; break; }
   let workSource = 'Unknown';
-  if (/\b316\b/i.test(pmLine)) workSource = '316 Rentals';
+  if (/316/i.test(pmLine)) workSource = '316 Rentals';
   else if (/blu\s*2|\bblu\b/i.test(pmLine)) workSource = 'Blu / Blu 2';
   else if (/\bsb\b|sb investments/i.test(pmLine)) workSource = 'SB Investments';
   else if (/\bpmi\b/i.test(pmLine)) workSource = 'PMI';
   else if (/\bjn\b/i.test(pmLine)) workSource = 'JN Investments';
   const billingCustomer = job?.location?.account?.name || 'Unknown';
-  const operationallyAuthorized = !!c && (/\b316\b|blu\s*2|\bblu\b|\bsb\b|sb investments/i.test(pmLine));
+  const operationallyAuthorized = !!c && (/316|blu\s*2|\bblu\b|\bsb\b|sb investments/i.test(pmLine));
   return { pm, workSource, billingCustomer, sourceCommentId:c?.id || null, sourceText:text, operationallyAuthorized };
 }
 function operationalEvidence(job, comments, logs) {
