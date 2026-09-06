@@ -28,7 +28,7 @@ async function fetchPaged(grantKey, field, buildConnection) {
     nodes.push(...(result.nodes || []));
     page = result.nextPage || null;
     pages += 1;
-    if (pages > 50) throw new Error(`${field}: Pagination safety stop reached`);
+    if (pages > 100) throw new Error(`${field}: Pagination safety stop reached`);
   } while (page);
   return { nodes, nextPage: null };
 }
@@ -46,7 +46,7 @@ const jobConnection = page => ({
 
 const documentConnection = page => ({
   $: {
-    size: 100, ...(page ? { page } : {}),
+    size: 20, ...(page ? { page } : {}),
     where: { or: [['type', 'customerOrder'], ['type', 'customerInvoice'], ['type', 'vendorBill'], ['type', 'vendorOrder']] },
     sortBy: [{ field: 'createdAt', order: 'desc' }]
   },
@@ -56,7 +56,7 @@ const documentConnection = page => ({
     job: { id: {}, number: {}, name: {} },
     account: { id: {}, name: {}, type: {} },
     costItems: {
-      $: { size: 100 },
+      $: { size: 50 },
       nodes: {
         id: {}, name: {}, description: {}, cost: {}, price: {}, priceWithTax: {}, quantity: {}, unitCost: {}, unitPrice: {},
         jobCostItem: { id: {}, name: {} },
@@ -124,7 +124,6 @@ export default async function handler(req, res) {
       return res.status(403).json({ ok: false, code: 'WRONG_JOBTREAD_ORG', error: `Connected JobTread organization must be ${ORG_NAME}.` });
     }
 
-    // Intentionally sequential during live-feed hardening so a rejected Pave query is attributable.
     const jobs = await fetchPaged(grantKey, 'jobs', jobConnection);
     const documents = await fetchPaged(grantKey, 'documents', documentConnection);
     const comments = await fetchPaged(grantKey, 'comments', commentConnection);
