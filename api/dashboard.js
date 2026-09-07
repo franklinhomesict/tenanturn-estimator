@@ -153,20 +153,18 @@ function attachCostItems(documents, costItems) {
 function enrichOperationalEvidence(jobs, comments) {
   const jobById = Object.fromEntries((jobs.nodes || []).map(j => [j.id, j]));
   const nodes = [...(comments.nodes || [])];
-  const pastFieldWork = /\b(?:took down|cut down|removed|replaced|upsized|treated|repaired|painted|installed|hung|laid|fixed|scrubbed|cleaned|hauled)\b/i;
-  const instructionOnly = /\b(?:need to|needs? to|should|will need|scope|quote|bid|estimate|replace|repair|install|paint|remove|demo)\b/i;
+  const highConfidenceFieldUpdate = /(?:^|[.!?\n]\s*)(?:(?:i|we|they|he|crew|vendor|contractor)\s+)?(?:took down|cut down|removed|replaced|upsized|treated|repaired|painted|installed|hung|laid|fixed|scrubbed|cleaned|hauled)\b|\bgetting close to finished\b|\bfinish tomorrow\b/i;
 
   for (const c of comments.nodes || []) {
     const message = String(c.message || '').trim();
     const jobId = c.job?.id;
-    if (!jobId || !message || !pastFieldWork.test(message)) continue;
-    if (instructionOnly.test(message) && !/\b(?:i|we|they|he|crew|vendor|contractor)\b/i.test(message) && !/^(?:took down|removed|replaced|upsized|treated|repaired|painted|installed|hung|laid|fixed|scrubbed|cleaned|hauled)\b/i.test(message)) continue;
+    if (!jobId || !message || !highConfidenceFieldUpdate.test(message)) continue;
     nodes.push({
       id: `derived-start-${c.id}`,
       createdAt: c.createdAt,
       isPinned: false,
       name: 'Dashboard derived field evidence',
-      message: `started work — derived from completed field action: ${message.slice(0, 500)}`,
+      message: `started work — derived from field update: ${message.slice(0, 500)}`,
       job: c.job,
       evidenceSource: 'derived-from-jobtread-comment'
     });
