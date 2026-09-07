@@ -3,7 +3,7 @@ import { buildForensicModel } from '../src/forensicModel.js';
 
 const job={
   id:'review-job',number:'R1',name:'Operational Review Test',description:'',closedOn:null,actualCost:0,
-  taskSummary:{started:0},location:{account:{id:'c1',name:'316 Rentals',type:'customer'}}
+  taskSummary:{started:0},location:{account:{id:'c1',name:'Direct Customer',type:'customer'}}
 };
 const order={
   id:'o1',type:'customerOrder',status:'approved',createdAt:'2026-09-01T12:00:00Z',issueDate:'2026-09-01',closedAt:'2026-09-01T12:00:00Z',signedAt:null,
