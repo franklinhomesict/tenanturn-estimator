@@ -8,11 +8,148 @@
       .logo { width: 96px !important; height: 96px !important; }
       @media (max-width: 680px) {
         .logo { width: 78px !important; height: 78px !important; }
+
+        /* Ops job cards: visual-only layer. No KPI or ledger math changes. */
+        tr.ops-job-row {
+          position: relative;
+          padding: 13px 12px 12px !important;
+          border-radius: 13px !important;
+          border: 1px solid #303947 !important;
+          border-left-width: 5px !important;
+          background: #141922;
+          margin-bottom: 12px !important;
+        }
+        tr.ops-job-row.stage-backlog { border-left-color: #788597 !important; }
+        tr.ops-job-row.stage-assigned { border-left-color: #6ab7ff !important; }
+        tr.ops-job-row.stage-wip { border-left-color: #52d28c !important; }
+        tr.ops-job-row.stage-review { border-left-color: #ffd166 !important; }
+        tr.ops-job-row.stage-closeout { border-left-color: #f3a95f !important; }
+
+        tr.ops-job-row td[data-label="Job"] {
+          font-size: 18px !important;
+          line-height: 1.2;
+          font-weight: 850;
+          padding-top: 3px !important;
+          padding-bottom: 8px !important;
+        }
+        tr.ops-job-row td[data-label="Job"]::before { display: none !important; }
+
+        tr.ops-job-row td[data-label="Stage"] {
+          display: inline-flex !important;
+          width: auto !important;
+          border-radius: 999px;
+          padding: 5px 9px !important;
+          margin: 0 6px 8px 0;
+          font-size: 12px;
+          font-weight: 850;
+          letter-spacing: .02em;
+        }
+        tr.ops-job-row td[data-label="Stage"]::before { display: none !important; }
+        tr.ops-job-row.stage-backlog td[data-label="Stage"] { background: #252d38; color: #d7dee8; }
+        tr.ops-job-row.stage-assigned td[data-label="Stage"] { background: #132c46; color: #8ecbff; }
+        tr.ops-job-row.stage-wip td[data-label="Stage"] { background: #102c20; color: #62dfa0; }
+        tr.ops-job-row.stage-review td[data-label="Stage"] { background: #33290e; color: #ffd166; }
+        tr.ops-job-row.stage-closeout td[data-label="Stage"] { background: #342313; color: #ffc17c; }
+
+        tr.ops-job-row .ops-line-tag {
+          display: inline-flex;
+          align-items: center;
+          width: auto;
+          border: 1px solid #3b4656;
+          border-radius: 999px;
+          padding: 4px 8px;
+          margin: 0 0 8px 0;
+          color: #b9c6d7;
+          font-size: 10px;
+          font-weight: 850;
+          letter-spacing: .06em;
+        }
+
+        tr.ops-job-row td[data-label="Next Action"] {
+          margin-top: 8px;
+          padding: 9px 10px !important;
+          border-radius: 9px;
+          background: #101a28;
+          border: 1px solid #2f4258;
+          font-size: 15px;
+          font-weight: 800;
+        }
+        tr.ops-job-row td[data-label="Next Action"]::before {
+          content: "NEXT" !important;
+          display: block !important;
+          margin-bottom: 3px;
+          color: #7fa8d3 !important;
+          font-size: 9px !important;
+          font-weight: 900;
+          letter-spacing: .08em;
+        }
+
+        tr.ops-job-row td[data-label="Approved Unbilled"] {
+          font-size: 16px;
+          font-weight: 800;
+        }
+        tr.ops-job-row td[data-label="Billing Customer"],
+        tr.ops-job-row td[data-label="Work Source"],
+        tr.ops-job-row td[data-label="PM / Client"],
+        tr.ops-job-row td[data-label="Vendor $ Remaining"] {
+          color: #d8dee8;
+        }
       }
     </style>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      (() => {
+        const classify = (stage) => {
+          const s = (stage || '').toLowerCase();
+          if (s.includes('review') || s.includes('blocked')) return 'stage-review';
+          if (s.includes('wip') || s.includes('progress')) return 'stage-wip';
+          if (s.includes('assigned')) return 'stage-assigned';
+          if (s.includes('complete') || s.includes('closeout') || s.includes('ready to bill')) return 'stage-closeout';
+          return 'stage-backlog';
+        };
+
+        const enhanceOpsCards = () => {
+          const heading = [...document.querySelectorAll('h3')].find(h => h.textContent.trim() === 'Current Work Through Closeout');
+          if (!heading) return;
+          const card = heading.closest('.card');
+          if (!card) return;
+          const activeLine = document.querySelector('.biznav button.on')?.textContent?.trim();
+          const lineTag = activeLine === 'Make Ready' ? 'MR' : activeLine === 'Contractor Services' ? 'CS' : '';
+
+          card.querySelectorAll('tbody tr').forEach(row => {
+            row.classList.add('ops-job-row');
+            const stageCell = row.querySelector('td[data-label="Stage"]');
+            const stage = stageCell?.textContent?.trim() || '';
+            row.classList.remove('stage-backlog','stage-assigned','stage-wip','stage-review','stage-closeout');
+            row.classList.add(classify(stage));
+
+            row.querySelectorAll('.ops-line-tag').forEach(x => x.remove());
+            if (lineTag && stageCell) {
+              const tag = document.createElement('span');
+              tag.className = 'ops-line-tag';
+              tag.textContent = lineTag;
+              stageCell.insertAdjacentElement('afterend', tag);
+            }
+          });
+        };
+
+        let queued = false;
+        const queueEnhance = () => {
+          if (queued) return;
+          queued = true;
+          requestAnimationFrame(() => {
+            queued = false;
+            enhanceOpsCards();
+          });
+        };
+
+        new MutationObserver(queueEnhance).observe(document.getElementById('root'), { childList: true, subtree: true, characterData: true });
+        document.addEventListener('click', () => setTimeout(enhanceOpsCards, 0));
+        window.addEventListener('load', enhanceOpsCards);
+      })();
+    </script>
   </body>
 </html>
