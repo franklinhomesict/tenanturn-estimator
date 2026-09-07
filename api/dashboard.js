@@ -41,7 +41,10 @@ const jobConnection = page => ({
     id: {}, number: {}, name: {}, description: {}, createdAt: {}, closedOn: {},
     projectedCost: {}, actualCost: {},
     taskSummary: { started: {}, completed: {}, unstarted: {}, startDate: {}, endDate: {} },
-    location: { account: { id: {}, name: {}, type: {} }, contact: { name: {} } }
+    location: {
+      account: { id: {}, name: {}, type: {}, contacts: { $: { size: 5 }, nodes: { id: {}, name: {} } } },
+      contact: { name: {} }
+    }
   },
   nextPage: {}
 });
@@ -152,6 +155,10 @@ function attachCostItems(documents, costItems) {
   };
 }
 
+function escRx(value) {
+  return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function enrichOperationalEvidence(jobs, comments) {
   const jobById = Object.fromEntries((jobs.nodes || []).map(j => [j.id, j]));
   const nodes = [...(comments.nodes || [])];
@@ -172,6 +179,32 @@ function enrichOperationalEvidence(jobs, comments) {
     });
   }
 
+  const commentsByJob = {};
+  for (const c of comments.nodes || []) if (c.job?.id) (commentsByJob[c.job.id] ||= []).push(c);
+  for (const job of jobs.nodes || []) {
+    const local = commentsByJob[job.id] || [];
+    const orgOnlyPm = local.find(c => c.isPinned && /^\s*(?:notes?\s*[:=-]?\s*)?pm\s*[:=-]?\s*pmi\s*$/im.test(c.message || ''));
+    const contacts = job.location?.account?.contacts?.nodes || [];
+    if (!orgOnlyPm || contacts.length !== 1) continue;
+    const contactName = String(contacts[0]?.name || '').trim();
+    const firstName = contactName.split(/\s+/)[0];
+    const narrative = local.map(c => c.message || '').join(' ');
+    const personRx = new RegExp(`\\b${escRx(firstName)}\\b`, 'i');
+    const relationshipRx = new RegExp(`(?:approved by|approved|asking|update|schedule|customer)[^.!?]{0,100}\\b${escRx(firstName)}\\b|\\b${escRx(firstName)}\\b[^.!?]{0,100}(?:approved|asking|update|schedule)`, 'i');
+    if (!firstName || !personRx.test(narrative) || !relationshipRx.test(narrative)) continue;
+    const sourceAt = new Date(orgOnlyPm.createdAt || Date.now());
+    const derivedAt = Number.isNaN(sourceAt.getTime()) ? '2000-01-01T00:00:00.000Z' : new Date(sourceAt.getTime() - 1).toISOString();
+    nodes.push({
+      id: `derived-pm-${job.id}`,
+      createdAt: derivedAt,
+      isPinned: true,
+      name: 'JobTread-derived PM attribution',
+      message: `PM ${firstName} PMI\nDerived from the single named customer-account contact (${contactName}) plus job-thread approval/update evidence.`,
+      job: { id: job.id, number: job.number, name: job.name },
+      evidenceSource: 'derived-from-jobtread-record'
+    });
+  }
+
   const ownerConfirmed = [
     {
       id: 'owner-start-2006-s-topeka',
@@ -188,14 +221,6 @@ function enrichOperationalEvidence(jobs, comments) {
       name: 'Owner-confirmed PM attribution',
       message: 'PM Brad PMI\nOwner-confirmed by Ian 2026-09-06.',
       jobId: '22PdjcNy9Umt'
-    },
-    {
-      id: 'derived-pm-420-kessler',
-      createdAt: '2026-09-06T23:56:00.000Z',
-      isPinned: true,
-      name: 'JobTread-derived PM attribution',
-      message: 'PM Brad PMI\nDerived from JobTread: customer is 1439 Homes (Brad Simmons), Brad approved the proposal, and schedule updates are directed to Brad.',
-      jobId: '22PcWTPvrgPF'
     }
   ];
 
@@ -209,7 +234,7 @@ function enrichOperationalEvidence(jobs, comments) {
       name: fact.name,
       message: fact.message,
       job: { id: job.id, number: job.number, name: job.name },
-      evidenceSource: fact.id.startsWith('derived-') ? 'derived-from-jobtread-record' : 'owner-confirmed'
+      evidenceSource: 'owner-confirmed'
     });
   }
 
