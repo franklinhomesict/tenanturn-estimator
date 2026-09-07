@@ -40,5 +40,9 @@ const run=d=>buildForensicModel(d,'2026-09-01','2026-09-30');
   const d=baseData(),j=job('directWO','302 Briarwood - Siding','Lucas Schroeder');d.jobs=[j];d.docs=[order('o8',j),wo('wo8',j)];
   const m=run(d),x=m.jobs[0];assert.equal(x.stage,'Assigned / Not Started');
 }
+{
+  const d=baseData(),j=job('pmiBrad','1847 S Gold St - CS','1439 Homes');d.jobs=[j];d.docs=[order('o9',j,4375),wo('wo9',j,3500)];d.comments=[{id:'c9a',createdAt:'2026-09-01T10:00:00Z',isPinned:true,message:'PM: PMI\nContractor Services',job:{id:j.id,number:j.number,name:j.name}},{id:'c9b',createdAt:'2026-09-01T16:00:00Z',isPinned:true,message:'Approved by Brad Simmons via document click-approve.',job:{id:j.id,number:j.number,name:j.name}}];
+  const m=run(d),x=m.jobs[0];assert.equal(x.src.workSource,'PMI');assert.equal(x.src.pm,'Brad');assert.equal(x.stage,'Assigned / Not Started');
+}
 
-console.log('Source/stage self-test: 8 scenarios passed.');
+console.log('Source/stage self-test: 9 scenarios passed.');
