@@ -36,7 +36,35 @@ if(!model.includes('const reconciledJobsForVendor =')){
 if(model.includes(oldVendorResult)) model=model.replace(oldVendorResult,newVendorResult);
 else if(!model.includes(newVendorResult)) throw new Error('Vendor final economics output changed; refusing unsafe workflow patch.');
 
+const manualAuditAnchor="    const src = sourceIdentity(x.job, x.comments, commentsById), ev = operationalEvidence(x.job, x.comments, x.logs), scheduledAssignment";
+if(!model.includes("'MANUAL_OPERATIONAL_OVERRIDE'")){
+  const pos=model.indexOf(manualAuditAnchor);
+  if(pos<0) throw new Error('Manual override audit insertion point changed; refusing unsafe workflow patch.');
+  const end=model.indexOf('\n',pos);
+  const insert=`\n    for (const c of x.comments.filter(c => c.evidenceSource === 'manual-override' && c.manualOverride)) {\n      const o=c.manualOverride, ageDays=Math.max(0,(Date.now()-new Date(o.confirmedAt).getTime())/86400000), stale=ageDays>Number(o.reviewAfterDays||7);\n      push(x.job, stale?'Review':'Info', stale?'MANUAL_OVERRIDE_STALE':'MANUAL_OPERATIONAL_OVERRIDE', stale?\`Manual override from \${o.confirmedBy} on \${String(o.confirmedAt).slice(0,10)} is now \${Math.floor(ageDays)} days old and needs fresh JobTread evidence.\`:\`Manual override from \${o.confirmedBy} on \${String(o.confirmedAt).slice(0,10)}: \${o.fact} Auto-review after \${o.reviewAfterDays||7} days if JobTread does not supersede it.\`);\n    }`;
+  model=model.slice(0,end)+insert+model.slice(end);
+}
+
 fs.writeFileSync(modelPath,model);
+
+const apiPath='api/dashboard.js';
+let api=fs.readFileSync(apiPath,'utf8');
+const apiImport="import { buildForensicModel, normalize } from '../src/forensicModel.js';";
+const apiImportNew=`${apiImport}\nimport { manualOperationalOverrides, manualOverrideComment } from '../src/manualOverrides.js';`;
+if(!api.includes("from '../src/manualOverrides.js'")){
+  if(!api.includes(apiImport)) throw new Error('API import anchor changed; refusing unsafe override patch.');
+  api=api.replace(apiImport,apiImportNew);
+}
+const ownerStart=api.indexOf('  const ownerConfirmed = [');
+const ownerEndNeedle='\n\n  return { nodes, nextPage: null };';
+if(ownerStart>=0){
+  const ownerEnd=api.indexOf(ownerEndNeedle,ownerStart);
+  if(ownerEnd<0) throw new Error('Owner override block end changed; refusing unsafe override patch.');
+  const replacement=`  for (const override of manualOperationalOverrides) {\n    const job=jobById[override.jobId];\n    if (!job || job.closedOn) continue;\n    const newerRaw=(raw||[]).filter(c=>c.job?.id===override.jobId&&new Date(c.createdAt)>new Date(override.confirmedAt));\n    const superseded=newerRaw.some(c=>highConfidenceFieldUpdate.test(String(c.message||''))||/\\b(?:job|project|all work|work) (?:is )?(?:complete|completed|finished)\\b|\\bready to bill\\b/i.test(String(c.message||'')));\n    if (!superseded) nodes.push(manualOverrideComment(override,job));\n  }`;
+  api=api.slice(0,ownerStart)+replacement+api.slice(ownerEnd);
+}else if(api.includes("id: 'owner-pm-1847-s-gold'")) throw new Error('Legacy 1847 owner override still present; refusing build.');
+if(api.includes("id: 'owner-pm-1847-s-gold'")) throw new Error('Legacy 1847 owner override still present after patch.');
+fs.writeFileSync(apiPath,api);
 
 const forensicTestPath='scripts/forensic-self-test.mjs';
 let tests=fs.readFileSync(forensicTestPath,'utf8');
@@ -46,4 +74,4 @@ if(tests.includes(oldPendingWo)) tests=tests.replace(oldPendingWo,newPendingWo);
 else if(!tests.includes(newPendingWo)) throw new Error('Pending-WO regression changed; refusing unsafe workflow patch.');
 fs.writeFileSync(forensicTestPath,tests);
 
-console.log('Workflow truth applied: approved vendor WO required for assignment; explicit Blu-not-Blu2 source wins; vendor revenue attributed by reconciled scope.');
+console.log('Workflow truth applied: approved vendor WO required for assignment; explicit Blu-not-Blu2 source wins; vendor revenue attributed by reconciled scope; manual overrides transparent and expiring.');
