@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "test:forensic": "node scripts/forensic-self-test.mjs",
+    "test:forensic": "node scripts/forensic-self-test.mjs && node scripts/business-line-self-test.mjs",
     "build": "npm run test:forensic && vite build",
     "preview": "vite preview"
   },
