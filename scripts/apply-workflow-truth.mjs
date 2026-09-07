@@ -14,4 +14,13 @@ if(model.includes(scheduledBacklog)) model=model.replace(scheduledBacklog,strict
 else if(!model.includes(strictBacklog)) throw new Error('Backlog assignment rule changed; refusing unsafe workflow patch.');
 
 fs.writeFileSync(modelPath,model);
+
+const forensicTestPath='scripts/forensic-self-test.mjs';
+let tests=fs.readFileSync(forensicTestPath,'utf8');
+const oldPendingWo="// 23. Bare scope verbs such as Demo/Painting are not proof work started.\n{ const d=empty(),j=job('23','Heritage 111');d.jobs=[j];const p=item('p23','Make Ready',1481,925),v={...p,price:0,priceWithTax:0,cost:925};d.docs=[doc('o23','customerOrder','approved',j,1481,{closedAt:'2026-08-20T12:00:00Z',costItems:{nodes:[p]}}),doc('wo23','vendorOrder','pending',j,925,{costItems:{nodes:[v]}})];d.comments=[{id:'c23',createdAt:'2026-08-06T12:00:00Z',message:'Scope:\\n- Demo loose lay $51\\n- Painting walls $272\\n- Install one blind $10',job:{id:j.id}}];const m=run(d);assert.equal(m.jobs[0].stage,'Assigned / Not Started'); }";
+const newPendingWo="// 23. Bare scope verbs are not proof work started, and a pending vendor WO is still Backlog.\n{ const d=empty(),j=job('23','Heritage 111');d.jobs=[j];const p=item('p23','Make Ready',1481,925),v={...p,price:0,priceWithTax:0,cost:925};d.docs=[doc('o23','customerOrder','approved',j,1481,{closedAt:'2026-08-20T12:00:00Z',costItems:{nodes:[p]}}),doc('wo23','vendorOrder','pending',j,925,{costItems:{nodes:[v]}})];d.comments=[{id:'c23',createdAt:'2026-08-06T12:00:00Z',message:'Scope:\\n- Demo loose lay $51\\n- Painting walls $272\\n- Install one blind $10',job:{id:j.id}}];const m=run(d);assert.equal(m.jobs[0].stage,'Backlog'); }";
+if(tests.includes(oldPendingWo)) tests=tests.replace(oldPendingWo,newPendingWo);
+else if(!tests.includes(newPendingWo)) throw new Error('Pending-WO regression changed; refusing unsafe workflow patch.');
+fs.writeFileSync(forensicTestPath,tests);
+
 console.log('Workflow truth applied: approved vendor WO required for assignment.');
