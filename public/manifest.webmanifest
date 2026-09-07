@@ -1,0 +1,17 @@
+{
+  "name": "TenanTurn Executive Dashboard",
+  "short_name": "TenanTurn",
+  "description": "Live TenanTurn owner dashboard",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b0e13",
+  "theme_color": "#0b0e13",
+  "icons": [
+    {
+      "src": "https://cdn.jobtread.com/G1QAaByn6Sr5CkWyvKV-3ezPG7pNFSoaG4EmdVj6QgQmcuAeoKXh5-_RKSYUv8M8_bELDZAQGdVpQRG0AMDYvmvJ2nwhUx4BbRjNGQ.9thaKOHAI7-2EsSPFpyFQIFL_VMd0XZq03jRYjrug5M?size=512",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ]
+}
