@@ -28,6 +28,14 @@ const oldLoss="const lossRx = /went with another|chose (?:a )?cheaper|another co
 const newLoss="const lossRx = /went with another|went forward with another bid|selected another bid|selected a different bid|chose another bid|chose (?:a )?cheaper|another contractor|not moving forward|decided not to|declined (?:the )?(?:bid|work)|lost (?:the )?(?:job|bid)|owner chose|customer chose/i;";
 if(model.includes(oldLoss)) model=model.replace(oldLoss,newLoss);
 else if(!model.includes(newLoss)) throw new Error('Forensic loss rule changed; refusing unsafe production patch.');
+
+const trustNeedle="  for (const d of deniedFinancials) push(d.job, 'Info', 'DENIED_FINANCIAL_EXCLUDED', `${d.fullName} is denied audit history and excluded from all totals.`);";
+const trustInsert="  for (const j of jobs) if (j.stage === 'Review' && !exceptions.some(e => e.job === j.job.name && (e.severity === 'Critical' || e.severity === 'Review'))) push(j.job, 'Review', 'OPERATIONAL_STAGE_REVIEW', 'Operational evidence is insufficient to place this active job confidently; review assignment, completion, or vendor evidence.');\n\n"+trustNeedle;
+if(!model.includes("'OPERATIONAL_STAGE_REVIEW'")){
+  if(!model.includes(trustNeedle)) throw new Error('Forensic trust insertion point changed; refusing unsafe production patch.');
+  model=model.replace(trustNeedle,trustInsert);
+}
+
 fs.writeFileSync(modelPath,model);
 
 console.log('Production rules applied safely.');
