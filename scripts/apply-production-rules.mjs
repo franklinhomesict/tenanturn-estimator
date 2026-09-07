@@ -75,7 +75,7 @@ if(model.includes(oldSrcEv)) model=model.replace(oldSrcEv,newSrcEv);
 else if(!model.includes(newSrcEv)) throw new Error('Operational scheduling insertion point changed; refusing unsafe production patch.');
 
 const oldBacklog="      if (!activeVendorNames.length && !ev.started) stage = 'Backlog';";
-const newBacklog="      if (!activeVendorNames.length && !ev.started) stage = scheduledAssignment ? 'Assigned / Not Started' : 'Backlog';";
+const newBacklog="      if (!activeVendorNames.length && !ev.started) { const ownerManaged = ['Blu', 'Blu 2', 'SB Investments', 'Brandon-owned'].includes(src.workSource); stage = scheduledAssignment && !ownerManaged ? 'Assigned / Not Started' : 'Backlog'; }";
 if(model.includes(oldBacklog)) model=model.replace(oldBacklog,newBacklog);
 else if(!model.includes(newBacklog)) throw new Error('Backlog stage rule changed; refusing unsafe production patch.');
 
