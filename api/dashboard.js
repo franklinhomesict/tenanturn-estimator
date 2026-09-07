@@ -69,7 +69,7 @@ const costItemConnection = page => ({
   },
   nodes: {
     id: {}, name: {}, description: {}, cost: {}, price: {}, priceWithTax: {}, quantity: {}, unitCost: {}, unitPrice: {}, isSelected: {},
-    document: { id: {}, type: {}, fullName: {}, job: { id: {}, number: {}, name: {} } },
+    document: { id: {}, type: {}, status: {}, fullName: {}, job: { id: {}, number: {}, name: {} } },
     jobCostItem: { id: {}, name: {} },
     sourceCostItem: { id: {}, name: {} }
   },
@@ -127,7 +127,7 @@ function attachCostItems(documents, costItems) {
   for (const item of costItems.nodes || []) {
     const documentId = item.document?.id;
     if (!documentId) continue;
-    if (item.document?.type === 'customerOrder' && item.isSelected === false) continue;
+    if (item.document?.type === 'customerOrder' && item.document?.status === 'approved' && item.isSelected === false) continue;
     (byDocument[documentId] ||= []).push({
       id: item.id,
       name: item.name,
@@ -188,6 +188,14 @@ function enrichOperationalEvidence(jobs, comments) {
       name: 'Owner-confirmed PM attribution',
       message: 'PM Brad PMI\nOwner-confirmed by Ian 2026-09-06.',
       jobId: '22PdjcNy9Umt'
+    },
+    {
+      id: 'derived-pm-420-kessler',
+      createdAt: '2026-09-06T23:56:00.000Z',
+      isPinned: true,
+      name: 'JobTread-derived PM attribution',
+      message: 'PM Brad PMI\nDerived from JobTread: customer is 1439 Homes (Brad Simmons), Brad approved the proposal, and schedule updates are directed to Brad.',
+      jobId: '22PcWTPvrgPF'
     }
   ];
 
@@ -201,7 +209,7 @@ function enrichOperationalEvidence(jobs, comments) {
       name: fact.name,
       message: fact.message,
       job: { id: job.id, number: job.number, name: job.name },
-      evidenceSource: 'owner-confirmed'
+      evidenceSource: fact.id.startsWith('derived-') ? 'derived-from-jobtread-record' : 'owner-confirmed'
     });
   }
 
@@ -220,13 +228,14 @@ function compactAudit(apiResponse, start, end) {
       won: m.salesWon,
       wins: m.wins.map(j => ({ job: j.job.name, value: j.baseApproval?.priceWithTax || 0, pm: j.src.pm, source: j.src.workSource })),
       losses: m.losses.map(j => j.job.name),
-      pending: m.pendingNew.map(j => j.job.name),
+      pending: m.pendingNew.map(j => ({ job: j.job.name, value: j.pendingNew?.priceWithTax || 0, pm: j.src.pm, source: j.src.workSource })),
       winRate: m.winRate
     },
     ops: m.current.map(j => ({ job: j.job.name, stage: j.stage, customer: j.src.billingCustomer, source: j.src.workSource, pm: j.src.pm, unbilled: j.unbilledContracted, economicsStatus: j.economicsStatus })),
     finance: {
       periodBilled: m.periodBilled,
       customerPaymentsApplied: m.customerPaymentsApplied,
+      cashOnWay: m.cashDirected,
       verifiedCashIn: m.verifiedCashIn,
       verifiedCashOut: m.verifiedCashOut,
       ar: m.finance.ar,
