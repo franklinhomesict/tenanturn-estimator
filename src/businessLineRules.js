@@ -1,7 +1,8 @@
 const passRx=/\b(?:reimbursement|reimbursements|reimbursable|reimburse|pass[- ]?through)\b/i;
 const feeRx=/instant pay|processing fee/i;
-const mrJobRx=/\b(?:make ready|make-ready|\bmr\b|turnover|unit turn)\b/i;
-const hardCsJobRx=/\b(?:roof|roofing|siding|tree work|tree removal|sewer|septic|contractor services|\bcs\b|foundation|gutter|concrete)\b/i;
+const explicitMrJobRx=/(?:-\s*(?:make ready|mr)\b|\bmake[- ]?ready\b|\bturnover\b|\bunit turn\b)/i;
+const explicitCsJobRx=/(?:-\s*cs\b|\bcontractor services\b|\b(?:roof|roofing|siding|tree work|tree removal|sewer|septic|foundation|gutter|concrete|water heater)\b)/i;
+const flooringTurnJobRx=/(?:-\s*(?:lvp|flooring)\b|\bturnover flooring\b)/i;
 const turnoverScopeRx=/\b(?:make ready|make-ready|turnover|unit turn|lvp|flooring|paint|painting|drywall|trim|baseboard|door|doors|blind|blinds|clean|cleaning|trash|haul|lock|lockset|hardware|caulk|patch|touch ?up)\b/i;
 const specialtyScopeRx=/\b(?:tree|roof|roofing|siding|sewer|septic|foundation|gutter|concrete|exterior paint|water heater|plumbing repair|plumbing replacement|hvac|furnace|air conditioner|electrical service|service panel|panel upgrade)\b/i;
 
@@ -12,12 +13,27 @@ export function classifyBusinessLine(item,jobName=''){
   const n=`${item?.jobCostItem?.name||''} ${item?.name||''}`;
   const t=`${n} ${item?.description||''}`;
   if(isPassThroughItem(item)||isFeeItem(item))return 'PASS';
+
+  // Structured scope labels are strongest evidence. This preserves mixed jobs:
+  // a Make Ready Labor line stays MR even when the same JobTread job also has CS add-ons.
   if(/\b(?:make ready labor|turnover labor)\b/i.test(n))return 'MR';
-  if(hardCsJobRx.test(jobName))return 'CS';
+
+  // Explicit whole-job CS naming means generic lines belong to CS.
+  if(explicitCsJobRx.test(jobName))return 'CS';
+
+  // Ian already uses - Make Ready / - MR in JobTread. Inside those jobs, normal
+  // turnover work is MR, but clearly separate specialty/add-on scope can still be CS.
+  if(explicitMrJobRx.test(jobName)){
+    if(specialtyScopeRx.test(t))return 'CS';
+    return 'MR';
+  }
+
+  // Flooring/LVP-only turnover jobs are MR even though the job name is trade-specific.
+  if(flooringTurnJobRx.test(jobName))return 'MR';
+
+  // Without an explicit job-purpose label, classify only when the scope itself is clear.
   if(specialtyScopeRx.test(t))return 'CS';
-  if(mrJobRx.test(jobName))return 'MR';
   if(turnoverScopeRx.test(t))return 'MR';
-  if(/\b(?:lvp|flooring)\b/i.test(jobName))return 'MR';
   return 'REVIEW';
 }
 
@@ -30,7 +46,7 @@ export function classifyDocumentBusinessLine(doc){
   }
   const probe=`${doc?.job?.name||''} ${doc?.fullName||''}`;
   if(passRx.test(probe))return 'PASS';
-  if(hardCsJobRx.test(probe))return 'CS';
-  if(mrJobRx.test(probe)||/\b(?:lvp|flooring)\b/i.test(probe))return 'MR';
+  if(explicitCsJobRx.test(probe))return 'CS';
+  if(explicitMrJobRx.test(probe)||flooringTurnJobRx.test(probe))return 'MR';
   return 'REVIEW';
 }
