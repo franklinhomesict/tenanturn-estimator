@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite",
     "test:forensic": "node scripts/forensic-self-test.mjs && node scripts/business-line-self-test.mjs && node scripts/operational-trust-self-test.mjs && node scripts/source-stage-self-test.mjs",
-    "build": "node scripts/apply-production-rules.mjs && npm run test:forensic && vite build",
+    "build": "node scripts/apply-production-rules.mjs && node scripts/apply-workflow-truth.mjs && npm run test:forensic && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
