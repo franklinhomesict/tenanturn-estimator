@@ -5,7 +5,7 @@ const baseData=()=>({jobs:[],docs:[],comments:[],logs:[],tasks:[],payments:[],do
 const job=(id,name,billing='316 Rentals',description='')=>({id,number:id,name,description,closedOn:null,taskSummary:{started:0},location:{account:{id:`acct-${id}`,name:billing,type:'customer'}}});
 const item=(id,name,price,cost)=>({id,name,price,priceWithTax:price,cost,quantity:1,jobCostItem:{id:`scope-${id}`,name}});
 const order=(id,j,amount=1000)=>({id,type:'customerOrder',status:'approved',createdAt:'2026-09-01T12:00:00Z',issueDate:'2026-09-01',closedAt:'2026-09-01T12:00:00Z',signedAt:null,priceWithTax:amount,cost:600,amountPaid:0,balance:amount,fullName:`Proposal ${id}`,job:{id:j.id,number:j.number,name:j.name},account:j.location.account,costItems:{nodes:[item(`i-${id}`,'Make Ready Labor',amount,600)]}});
-const wo=(id,j,amount=600)=>({id,type:'vendorOrder',status:'approved',createdAt:'2026-09-01T12:00:00Z',issueDate:'2026-09-01',closedAt:null,signedAt:null,priceWithTax:0,cost:amount,amountPaid:0,balance:amount,fullName:`Work Order ${id}`,job:{id:j.id,number:j.number,name:j.name},account:{id:`vendor-${id}`,name:'Vendor A',type:'vendor'},costItems:{nodes:[item(`i-${id}`,'Make Ready Labor',0,amount)]}});
+const wo=(id,j,amount=600,status='approved')=>({id,type:'vendorOrder',status,createdAt:'2026-09-01T12:00:00Z',issueDate:'2026-09-01',closedAt:null,signedAt:null,priceWithTax:0,cost:amount,amountPaid:0,balance:amount,fullName:`Work Order ${id}`,job:{id:j.id,number:j.number,name:j.name},account:{id:`vendor-${id}`,name:'Vendor A',type:'vendor'},costItems:{nodes:[item(`i-${id}`,'Make Ready Labor',0,amount)]}});
 const run=d=>buildForensicModel(d,'2026-09-01','2026-09-30');
 
 {
@@ -26,15 +26,19 @@ const run=d=>buildForensicModel(d,'2026-09-01','2026-09-30');
 }
 {
   const d=baseData(),j=job('sched','302 Briarwood - Siding','Lucas Schroeder');d.jobs=[j];d.docs=[order('o5',j)];d.comments=[{id:'c5',createdAt:'2026-09-02T10:00:00Z',isPinned:false,message:'Spoke to Jorge. Whole week blocked off for you and can start the week of Sep 21.',job:{id:j.id,number:j.number,name:j.name}}];
-  const m=run(d),x=m.jobs[0];assert.equal(x.scheduledAssignment,true);assert.equal(x.stage,'Assigned / Not Started');
+  const m=run(d),x=m.jobs[0];assert.equal(x.scheduledAssignment,true);assert.equal(x.stage,'Backlog');
 }
 {
-  const d=baseData(),j=job('bluSched','1055 S Roosevelt - Make Ready','Blu 2');d.jobs=[j];d.docs=[order('o6',j)];d.comments=[{id:'c6',createdAt:'2026-09-02T10:00:00Z',isPinned:false,message:'Spoke to Vendor A and they can start this week.',job:{id:j.id,number:j.number,name:j.name}}];
-  const m=run(d),x=m.jobs[0];assert.equal(x.scheduledAssignment,true);assert.equal(x.stage,'Backlog');
+  const d=baseData(),j=job('pendingWO','302 Briarwood - Roof','Lucas Schroeder');d.jobs=[j];d.docs=[order('o6',j),wo('wo6',j,600,'pending')];
+  const m=run(d),x=m.jobs[0];assert.equal(x.stage,'Backlog');
 }
 {
   const d=baseData(),j=job('bluWO','1055 S Roosevelt - Make Ready','Blu 2');d.jobs=[j];d.docs=[order('o7',j),wo('wo7',j)];
   const m=run(d),x=m.jobs[0];assert.equal(x.stage,'Assigned / Not Started');
 }
+{
+  const d=baseData(),j=job('directWO','302 Briarwood - Siding','Lucas Schroeder');d.jobs=[j];d.docs=[order('o8',j),wo('wo8',j)];
+  const m=run(d),x=m.jobs[0];assert.equal(x.stage,'Assigned / Not Started');
+}
 
-console.log('Source/stage self-test: 7 scenarios passed.');
+console.log('Source/stage self-test: 8 scenarios passed.');
