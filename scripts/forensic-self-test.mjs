@@ -65,4 +65,22 @@ const run=(d,a='2026-08-01',b='2026-09-30')=>buildForensicModel(d,a,b);
 // 19. Brandon/Blu pinned scope can authorize Ops without inventing accounting approval.
 { const d=empty(),j=job('19','Blu Start',{description:'org comment blu19'});d.jobs=[j];d.comments=[{id:'blu19',createdAt:'2026-09-01T12:00:00Z',isPinned:true,message:'Notes\nPm blu2 Brandon\nUtilities yes\nLockbox 1415\nScope',job:null}];const m=run(d);assert.equal(m.jobs[0].src.operationallyAuthorized,true);assert.equal(m.jobs[0].baseApproval,null);assert.equal(m.jobs[0].stage,'Backlog'); }
 
-console.log('Forensic self-test: 19 scenarios passed.');
+// 20. "Complete besides..." is not whole-job completion.
+{ const d=empty(),j=job('20','257 N Poplar');d.jobs=[j];const p=item('p20','Labor',1000,600),v={...p,price:0,priceWithTax:0,cost:600};d.docs=[doc('o20','customerOrder','approved',j,1000,{closedAt:'2026-08-20T12:00:00Z',costItems:{nodes:[p]}}),doc('wo20','vendorOrder','approved',j,600,{costItems:{nodes:[v]}})];d.logs=[{id:'l20a',date:'2026-09-02',notes:'Installing flooring today.',job:{id:j.id}},{id:'l20b',date:'2026-09-04',notes:'Job is complete besides the issues with the toilet line.',job:{id:j.id}}];const m=run(d);assert.equal(m.jobs[0].stage,'WIP'); }
+
+// 21. Phase completion and a progress draw do not complete the overall job.
+{ const d=empty(),j=job('21','113 W 10th');d.jobs=[j];const p=item('p21','Phase 2 Labor',5364,3352),v={...p,price:0,priceWithTax:0,cost:3352};d.docs=[doc('o21','customerOrder','approved',j,5364,{closedAt:'2026-08-25T12:00:00Z',costItems:{nodes:[p]}}),doc('wo21','vendorOrder','approved',j,3352,{costItems:{nodes:[v]}})];d.logs=[{id:'l21',date:'2026-09-02',notes:'Installed new hot water heater. Installing a clean out as well.',job:{id:j.id}}];d.comments=[{id:'c21',createdAt:'2026-09-03T13:38:24Z',message:'Phase 1 is complete and has been paid. Need to add the plumbing change order for the project next.',job:{id:j.id}}];const m=run(d);assert.equal(m.jobs[0].stage,'WIP'); }
+
+// 22. Instructions to post a job sheet on site do not mean the crew is on site.
+{ const d=empty(),j=job('22','1847 S Gold');d.jobs=[j];const p=item('p22','Foundation',4375,3500),v={...p,price:0,priceWithTax:0,cost:3500};d.docs=[doc('o22','customerOrder','approved',j,4375,{closedAt:'2026-09-01T12:00:00Z',costItems:{nodes:[p]}}),doc('wo22','vendorOrder','approved',j,3500,{costItems:{nodes:[v]}})];d.comments=[{id:'c22',createdAt:'2026-09-01T21:55:00Z',message:'Job Sheet — print this and post it on site, check off each item as you go.',job:{id:j.id}}];const m=run(d);assert.equal(m.jobs[0].stage,'Assigned / Not Started'); }
+
+// 23. Bare scope verbs such as Demo/Painting are not proof work started.
+{ const d=empty(),j=job('23','Heritage 111');d.jobs=[j];const p=item('p23','Make Ready',1481,925),v={...p,price:0,priceWithTax:0,cost:925};d.docs=[doc('o23','customerOrder','approved',j,1481,{closedAt:'2026-08-20T12:00:00Z',costItems:{nodes:[p]}}),doc('wo23','vendorOrder','pending',j,925,{costItems:{nodes:[v]}})];d.comments=[{id:'c23',createdAt:'2026-08-06T12:00:00Z',message:'Scope:\n- Demo loose lay $51\n- Painting walls $272\n- Install one blind $10',job:{id:j.id}}];const m=run(d);assert.equal(m.jobs[0].stage,'Assigned / Not Started'); }
+
+// 24. A Wichita 316 phone area code cannot turn a PMI job into a 316 Rentals source.
+{ const d=empty(),j=job('24','1847 S Gold',{description:'Contractor Services job. Property manager PMI Wichita (Stephanie G.). Tenant phone: (316) 804-9461.',location:{account:{id:'1439',name:'1439 Homes',type:'customer'}}});d.jobs=[j];const m=run(d);assert.equal(m.jobs[0].src.workSource,'PMI'); }
+
+// 25. Closed original scope with a separate same-address follow-on job is resolved, not Review.
+{ const d=empty(),j=job('25','600 S Spruce - Make Ready',{closedOn:'2026-07-31T12:00:00Z'}),follow=job('25b','600 S Spruce - Punch List',{createdAt:'2026-08-06T16:00:00Z',closedOn:'2026-08-25T12:00:00Z'});d.jobs=[j,follow];d.comments=[{id:'c25',createdAt:'2026-08-06T16:13:00Z',message:'Need a couple more things done. Crew working today on the new scope.',job:{id:j.id}}];const m=run(d);assert.ok(m.info.some(e=>e.code==='FOLLOW_ON_SCOPE_SEPARATED'));assert.ok(!m.review.some(e=>e.code==='POST_CLOSE_NEW_SCOPE')); }
+
+console.log('Forensic self-test: 25 scenarios passed.');
