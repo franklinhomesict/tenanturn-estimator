@@ -154,10 +154,32 @@ function attachCostItems(documents, costItems) {
 
 function enrichOperationalEvidence(jobs, comments) {
   const jobById = Object.fromEntries((jobs.nodes || []).map(j => [j.id, j]));
-  const nodes = [...(comments.nodes || [])];
+  const raw = comments.nodes || [];
+  const narrativeByJob = {};
+  for (const c of raw) {
+    const jobId = c.job?.id;
+    if (!jobId) continue;
+    narrativeByJob[jobId] = `${narrativeByJob[jobId] || ''} ${c.message || ''}`;
+  }
+
+  const normalized = raw.map(c => {
+    const jobId = c.job?.id;
+    const message = String(c.message || '');
+    if (!jobId || !c.isPinned || !/(?:^|\n)\s*(?:pm|property manager)\s*[:=-]?\s*pmi\s*(?=\n|$)/im.test(message)) return c;
+    const narrative = narrativeByJob[jobId] || '';
+    const explicitBrad = /\bapproved by Brad\b|\bBrad\b.{0,80}\b(?:approved|approval|schedule|update)\b|\b(?:schedule|update)\b.{0,80}\bBrad\b/i.test(narrative);
+    if (!explicitBrad) return c;
+    return {
+      ...c,
+      message: message.replace(/((?:^|\n)\s*(?:pm|property manager)\s*[:=-]?\s*)pmi\s*(?=\n|$)/im, '$1Brad PMI'),
+      evidenceSource: 'derived-from-jobtread-thread'
+    };
+  });
+
+  const nodes = [...normalized];
   const highConfidenceFieldUpdate = /(?:^|[.!?\n]\s*)(?:(?:i|we|they|he|crew|vendor|contractor)\s+)?(?:took down|cut down|removed|replaced|upsized|treated|repaired|painted|installed|hung|laid|fixed|scrubbed|cleaned|hauled)\b|\bgetting close to finished\b|\bfinish tomorrow\b/i;
 
-  for (const c of comments.nodes || []) {
+  for (const c of normalized) {
     const message = String(c.message || '').trim();
     const jobId = c.job?.id;
     if (!jobId || !message || !highConfidenceFieldUpdate.test(message)) continue;
@@ -188,14 +210,6 @@ function enrichOperationalEvidence(jobs, comments) {
       name: 'Owner-confirmed PM attribution',
       message: 'PM Brad PMI\nOwner-confirmed by Ian 2026-09-06.',
       jobId: '22PdjcNy9Umt'
-    },
-    {
-      id: 'derived-pm-420-kessler',
-      createdAt: '2026-09-06T23:56:00.000Z',
-      isPinned: true,
-      name: 'JobTread-derived PM attribution',
-      message: 'PM Brad PMI\nDerived from JobTread: customer is 1439 Homes (Brad Simmons), Brad approved the proposal, and schedule updates are directed to Brad.',
-      jobId: '22PcWTPvrgPF'
     }
   ];
 
@@ -209,7 +223,7 @@ function enrichOperationalEvidence(jobs, comments) {
       name: fact.name,
       message: fact.message,
       job: { id: job.id, number: job.number, name: job.name },
-      evidenceSource: fact.id.startsWith('derived-') ? 'derived-from-jobtread-record' : 'owner-confirmed'
+      evidenceSource: 'owner-confirmed'
     });
   }
 
