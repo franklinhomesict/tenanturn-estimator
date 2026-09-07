@@ -127,7 +127,7 @@ function attachCostItems(documents, costItems) {
   for (const item of costItems.nodes || []) {
     const documentId = item.document?.id;
     if (!documentId) continue;
-    if (item.isSelected === false) continue;
+    if (item.document?.type === 'customerOrder' && item.isSelected === false) continue;
     (byDocument[documentId] ||= []).push({
       id: item.id,
       name: item.name,
