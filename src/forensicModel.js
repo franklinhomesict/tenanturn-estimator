@@ -158,7 +158,7 @@ function isWholeDoneText(text) {
   const t = String(text || '').trim();
   if (!t) return false;
   if (/\b(?:except|besides|still need|still needs|remaining|left to|issue(?:s)? with|not complete|not done|but\s+(?:still|not))\b/i.test(t)) return false;
-  if (/\b(?:phase|stage)\s*\d+\b/i.test(t) && !/\b(?:job|project|all work)\b/i.test(t)) return false;
+  if (/\b(?:phase|stage)\s*\d+\b[^.\n]{0,80}\b(?:complete|completed|finished|done)\b/i.test(t) && !/\b(?:job|project|all work)\b[^.\n]{0,40}\b(?:complete|completed|finished|done)\b/i.test(t)) return false;
   const explicitWhole = wholeDoneRx.test(t);
   if (/\b(?:flooring|lvp|plumbing|paint(?:ing)?|room|toilet|vanity|door|trim|scope|portion|part)\b[^.\n]{0,60}\b(?:done|complete|completed|finished)\b/i.test(t) && !explicitWhole) return false;
   if (/^(?:done|complete|completed|finished)[.!\s👍]*$/i.test(t)) return true;
