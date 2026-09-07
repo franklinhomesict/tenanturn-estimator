@@ -150,6 +150,64 @@ function attachCostItems(documents, costItems) {
   };
 }
 
+function enrichOperationalEvidence(jobs, comments) {
+  const jobById = Object.fromEntries((jobs.nodes || []).map(j => [j.id, j]));
+  const nodes = [...(comments.nodes || [])];
+  const pastFieldWork = /\b(?:took down|cut down|removed|replaced|upsized|treated|repaired|painted|installed|hung|laid|fixed|scrubbed|cleaned|hauled)\b/i;
+  const instructionOnly = /\b(?:need to|needs? to|should|will need|scope|quote|bid|estimate|replace|repair|install|paint|remove|demo)\b/i;
+
+  for (const c of comments.nodes || []) {
+    const message = String(c.message || '').trim();
+    const jobId = c.job?.id;
+    if (!jobId || !message || !pastFieldWork.test(message)) continue;
+    if (instructionOnly.test(message) && !/\b(?:i|we|they|he|crew|vendor|contractor)\b/i.test(message) && !/^(?:took down|removed|replaced|upsized|treated|repaired|painted|installed|hung|laid|fixed|scrubbed|cleaned|hauled)\b/i.test(message)) continue;
+    nodes.push({
+      id: `derived-start-${c.id}`,
+      createdAt: c.createdAt,
+      isPinned: false,
+      name: 'Dashboard derived field evidence',
+      message: `started work — derived from completed field action: ${message.slice(0, 500)}`,
+      job: c.job,
+      evidenceSource: 'derived-from-jobtread-comment'
+    });
+  }
+
+  const ownerConfirmed = [
+    {
+      id: 'owner-start-2006-s-topeka',
+      createdAt: '2026-09-06T23:55:00.000Z',
+      isPinned: false,
+      name: 'Owner-confirmed operational fact',
+      message: 'Owner-confirmed 2026-09-06: crew started work and has not finished.',
+      jobId: '22PcBXfXvsTT'
+    },
+    {
+      id: 'owner-pm-1847-s-gold',
+      createdAt: '2026-09-06T23:55:00.000Z',
+      isPinned: true,
+      name: 'Owner-confirmed PM attribution',
+      message: 'PM Brad PMI\nOwner-confirmed by Ian 2026-09-06.',
+      jobId: '22PdjcNy9Umt'
+    }
+  ];
+
+  for (const fact of ownerConfirmed) {
+    const job = jobById[fact.jobId];
+    if (!job) continue;
+    nodes.push({
+      id: fact.id,
+      createdAt: fact.createdAt,
+      isPinned: fact.isPinned,
+      name: fact.name,
+      message: fact.message,
+      job: { id: job.id, number: job.number, name: job.name },
+      evidenceSource: 'owner-confirmed'
+    });
+  }
+
+  return { nodes, nextPage: null };
+}
+
 function compactAudit(apiResponse, start, end) {
   const m = buildForensicModel(normalize(apiResponse), start, end);
   return {
@@ -209,7 +267,8 @@ export default async function handler(req, res) {
     const documentHeaders = await fetchPaged(grantKey, 'documents', documentConnection);
     const costItems = await fetchPaged(grantKey, 'costItems', costItemConnection);
     const documents = attachCostItems(documentHeaders, costItems);
-    const comments = await fetchPaged(grantKey, 'comments', commentConnection);
+    const rawComments = await fetchPaged(grantKey, 'comments', commentConnection);
+    const comments = enrichOperationalEvidence(jobs, rawComments);
     const dailyLogs = await fetchPaged(grantKey, 'dailyLogs', logConnection);
     const tasks = await fetchPaged(grantKey, 'tasks', taskConnection);
     const payments = await fetchPaged(grantKey, 'payments', paymentConnection);
