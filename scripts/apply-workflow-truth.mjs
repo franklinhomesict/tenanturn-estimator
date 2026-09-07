@@ -15,6 +15,13 @@ if(!model.includes("not\\s+blu\\s*2")){
   model=model.replace(sourceAnchor,sourceOverride);
 }
 
+const pmiAnchor="  if (pm === 'Unattributed' && /(?:Ally feedback|confirmed with Ally|Ally viewed|sent .* Ally)/i.test(allNarrative)) pm = 'Ally';";
+const pmiRule=`${pmiAnchor}\n  if (pm === 'Unattributed' && workSource === 'PMI') { const named=allNarrative.match(/\\b(?:approved by|approval (?:from|by)|sent to|texted)\\s+(Brad|Randy|Ben|Jessica|Lexi|Ally)\\b/i); if(named) pm=titleCase(named[1]); }`;
+if(!model.includes("workSource === 'PMI') { const named=")){
+  if(!model.includes(pmiAnchor)) throw new Error('PMI named approval insertion point changed; refusing unsafe workflow patch.');
+  model=model.replace(pmiAnchor,pmiRule);
+}
+
 const scheduledBacklog="      if (!activeVendorNames.length && !ev.started) { const ownerManaged = ['Blu', 'Blu 2', 'SB Investments', 'Brandon-owned'].includes(src.workSource); stage = scheduledAssignment && !ownerManaged ? 'Assigned / Not Started' : 'Backlog'; }";
 const strictBacklog="      if (!activeVendorNames.length && !ev.started) stage = 'Backlog';";
 if(model.includes(scheduledBacklog)) model=model.replace(scheduledBacklog,strictBacklog);
@@ -74,4 +81,4 @@ if(tests.includes(oldPendingWo)) tests=tests.replace(oldPendingWo,newPendingWo);
 else if(!tests.includes(newPendingWo)) throw new Error('Pending-WO regression changed; refusing unsafe workflow patch.');
 fs.writeFileSync(forensicTestPath,tests);
 
-console.log('Workflow truth applied: approved vendor WO required for assignment; explicit Blu-not-Blu2 source wins; vendor revenue attributed by reconciled scope; manual overrides transparent and expiring.');
+console.log('Workflow truth applied: approved vendor WO required for assignment; explicit Blu-not-Blu2 source wins; PMI named approvals enrich PM; vendor revenue attributed by reconciled scope; manual overrides transparent and expiring.');
