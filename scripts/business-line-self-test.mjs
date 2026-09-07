@@ -20,10 +20,12 @@ assert.equal(classifyBusinessLine(item('Water Heater','Replace unit'),'221 E 5th
 assert.equal(classifyBusinessLine(item('Labor'),'302 Briarwood - Roof'),'CS');
 assert.equal(classifyBusinessLine(item('Labor'),'3434 E 9th - Siding'),'CS');
 assert.equal(classifyBusinessLine(item('Labor'),'6421 S Sunnyside - Tree Work'),'CS');
+assert.equal(classifyBusinessLine(item('Labor'),'1847 S Gold St - CS'),'CS');
 
 // 6. Normal turnover scopes inside a make-ready stay MR.
 assert.equal(classifyBusinessLine(item('Paint walls'),'208 N Ash - Make Ready'),'MR');
 assert.equal(classifyBusinessLine(item('Replace LVP'),'208 N Ash - Make Ready'),'MR');
+assert.equal(classifyBusinessLine(item('Misc labor'),'Skelly Apts 300 S Main #1 - MR'),'MR');
 
 // 7. Pass-throughs never become MR or CS production.
 const reimb=item('Reimbursement - paint receipt','At cost, no markup');
@@ -41,4 +43,12 @@ assert.equal(classifyDocumentBusinessLine(doc('302 Briarwood - Roof',[],'Custome
 assert.equal(classifyDocumentBusinessLine(doc('8464 Granite Belaire - LVP',[],'Customer Proposal')),'MR');
 assert.equal(classifyDocumentBusinessLine(doc('Mystery Job',[],'Customer Proposal')),'REVIEW');
 
-console.log('Business-line self-test: 10 scenarios passed.');
+// 11. Real JobTread naming conventions are authoritative for generic lines.
+assert.equal(classifyBusinessLine(item('Labor'),'5267 N Toben - Make Ready'),'MR');
+assert.equal(classifyBusinessLine(item('Labor'),'1607 N Minneapolis - MR'),'MR');
+assert.equal(classifyDocumentBusinessLine(doc('1847 S Gold St - CS',[],'Customer Proposal')),'CS');
+
+// 12. Explicit Make Ready scope labels can coexist with CS add-ons in the same job.
+assert.equal(classifyDocumentBusinessLine(doc('420 S Kessler - Make Ready',[item('Labor','','Make Ready Labor'),item('Water Heater','Standalone replacement')])),'MIXED');
+
+console.log('Business-line self-test: 12 scenarios passed.');
