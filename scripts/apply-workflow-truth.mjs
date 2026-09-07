@@ -8,6 +8,13 @@ const newVendorOrders="  const vendorOrders = docs.filter(d => d.type === 'vendo
 if(model.includes(oldVendorOrders)) model=model.replace(oldVendorOrders,newVendorOrders);
 else if(!model.includes(newVendorOrders)) throw new Error('Vendor-order status rule changed; refusing unsafe workflow patch.');
 
+const sourceAnchor="  if (!job?.closedOn && (pm === 'Melinda' || /taken over for Melinda|Melinda (?:has )?(?:left|quit)|replaced Melinda/i.test(allNarrative))) pm = 'Ben';";
+const sourceOverride="  if (/\\bblu\\b[^.\\n]{0,50}\\bnot\\s+blu\\s*2\\b/i.test(allNarrative)) workSource = 'Blu';\n"+sourceAnchor;
+if(!model.includes("not\\s+blu\\s*2")){
+  if(!model.includes(sourceAnchor)) throw new Error('Source override insertion point changed; refusing unsafe workflow patch.');
+  model=model.replace(sourceAnchor,sourceOverride);
+}
+
 const scheduledBacklog="      if (!activeVendorNames.length && !ev.started) { const ownerManaged = ['Blu', 'Blu 2', 'SB Investments', 'Brandon-owned'].includes(src.workSource); stage = scheduledAssignment && !ownerManaged ? 'Assigned / Not Started' : 'Backlog'; }";
 const strictBacklog="      if (!activeVendorNames.length && !ev.started) stage = 'Backlog';";
 if(model.includes(scheduledBacklog)) model=model.replace(scheduledBacklog,strictBacklog);
@@ -23,4 +30,4 @@ if(tests.includes(oldPendingWo)) tests=tests.replace(oldPendingWo,newPendingWo);
 else if(!tests.includes(newPendingWo)) throw new Error('Pending-WO regression changed; refusing unsafe workflow patch.');
 fs.writeFileSync(forensicTestPath,tests);
 
-console.log('Workflow truth applied: approved vendor WO required for assignment.');
+console.log('Workflow truth applied: approved vendor WO required for assignment; explicit Blu-not-Blu2 source wins.');
