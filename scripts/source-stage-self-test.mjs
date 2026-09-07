@@ -26,7 +26,7 @@ const run=d=>buildForensicModel(d,'2026-09-01','2026-09-30');
 }
 {
   const d=baseData(),j=job('sched','302 Briarwood - Siding','Lucas Schroeder');d.jobs=[j];d.docs=[order('o5',j)];d.comments=[{id:'c5',createdAt:'2026-09-02T10:00:00Z',isPinned:false,message:'Spoke to Jorge. Whole week blocked off for you and can start the week of Sep 21.',job:{id:j.id,number:j.number,name:j.name}}];
-  const m=run(d),x=m.jobs[0];assert.equal(x.scheduledAssignment,true);assert.equal(x.stage,'Backlog');
+  const m=run(d),x=m.jobs[0];assert.equal(x.scheduledAssignment,true);assert.equal(x.stage,'Assigned / Not Started');assert.equal(Object.keys(x.remainingCommitByVendor||{}).length,0);
 }
 {
   const d=baseData(),j=job('pendingWO','302 Briarwood - Roof','Lucas Schroeder');d.jobs=[j];d.docs=[order('o6',j),wo('wo6',j,600,'pending')];
