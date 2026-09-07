@@ -68,7 +68,7 @@ const costItemConnection = page => ({
     where: [['document', 'id'], '!=', null]
   },
   nodes: {
-    id: {}, name: {}, description: {}, cost: {}, price: {}, priceWithTax: {}, quantity: {}, unitCost: {}, unitPrice: {},
+    id: {}, name: {}, description: {}, cost: {}, price: {}, priceWithTax: {}, quantity: {}, unitCost: {}, unitPrice: {}, isSelected: {},
     document: { id: {}, type: {}, fullName: {}, job: { id: {}, number: {}, name: {} } },
     jobCostItem: { id: {}, name: {} },
     sourceCostItem: { id: {}, name: {} }
@@ -127,6 +127,7 @@ function attachCostItems(documents, costItems) {
   for (const item of costItems.nodes || []) {
     const documentId = item.document?.id;
     if (!documentId) continue;
+    if (item.isSelected === false) continue;
     (byDocument[documentId] ||= []).push({
       id: item.id,
       name: item.name,
@@ -137,6 +138,7 @@ function attachCostItems(documents, costItems) {
       quantity: item.quantity,
       unitCost: item.unitCost,
       unitPrice: item.unitPrice,
+      isSelected: item.isSelected,
       jobCostItem: item.jobCostItem,
       sourceCostItem: item.sourceCostItem
     });
