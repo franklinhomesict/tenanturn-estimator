@@ -20,6 +20,22 @@ const strictBacklog="      if (!activeVendorNames.length && !ev.started) stage =
 if(model.includes(scheduledBacklog)) model=model.replace(scheduledBacklog,strictBacklog);
 else if(!model.includes(strictBacklog)) throw new Error('Backlog assignment rule changed; refusing unsafe workflow patch.');
 
+const oldVendorAttribution="    const jobActualTotal = j.actualProductionCost || 0; if (jobActualTotal > 0) r.revenue += j.billedProduction * (sum(Object.values(j.vendorActualByKey?.[vn] || {})) / jobActualTotal);";
+const newVendorAttribution="    if (j.economicsStatus === 'Reconciled') { for (const [k, vendorCost] of Object.entries(j.vendorActualByKey?.[vn] || {})) { const scopeActual = Number(j.actualByKey?.[k] || 0), scopeBilled = Number(j.billedByKey?.[k] || 0); if (scopeActual > TOL && scopeBilled) r.revenue += scopeBilled * Math.min(Math.max(Number(vendorCost || 0) / scopeActual, 0), 1); } }";
+if(model.includes(oldVendorAttribution)) model=model.replace(oldVendorAttribution,newVendorAttribution);
+else if(!model.includes(newVendorAttribution)) throw new Error('Vendor revenue attribution rule changed; refusing unsafe workflow patch.');
+
+const oldVendorResult="  const vendors = Object.values(vendorRows).map(r => { const cap = vendorCapacityModel[r.vendor] || null, weekly = cap?.rolling8WeeklyCost || 0, gp = r.revenue - r.actualCost; return { name: r.vendor, openJobs: [...r.jobs].filter(id => current.some(j => j.job.id === id)).length, remainingCost: r.remainingCommit, attributedRevenue: r.revenue, actualCost: r.actualCost, gp, margin: r.revenue ? 100 * gp / r.revenue : 0, rolling8WeeklyCost: weekly, lifetimeWeeklyCost: cap?.lifetimeWeeklyCost || 0, capacityConfidence: cap?.confidence || 'Low', capacitySampleJobs: cap?.sampleJobs8 || 0, weeks: weekly > 0 ? r.remainingCommit / weekly : null, read: weekly > 0 ? `${cap.confidence} confidence` : 'Learning' }; }).sort((a, b) => b.actualCost - a.actualCost);";
+const newVendorResult="  const vendors = Object.values(vendorRows).map(r => { const cap = vendorCapacityModel[r.vendor] || null, weekly = cap?.rolling8WeeklyCost || 0; let finalActualCost = 0; for (const j of reconciledJobsForVendor || []) finalActualCost += sum(Object.values(j.vendorActualByKey?.[r.vendor] || {})); const gp = r.revenue - finalActualCost; return { name: r.vendor, openJobs: [...r.jobs].filter(id => current.some(j => j.job.id === id)).length, remainingCost: r.remainingCommit, attributedRevenue: r.revenue, actualCost: r.actualCost, finalActualCost, gp, margin: r.revenue ? 100 * gp / r.revenue : 0, rolling8WeeklyCost: weekly, lifetimeWeeklyCost: cap?.lifetimeWeeklyCost || 0, capacityConfidence: cap?.confidence || 'Low', capacitySampleJobs: cap?.sampleJobs8 || 0, weeks: weekly > 0 ? r.remainingCommit / weekly : null, read: weekly > 0 ? `${cap.confidence} confidence` : 'Learning' }; }).sort((a, b) => b.actualCost - a.actualCost);";
+const vendorAnchor="  const vendorCapacityModel = buildVendorCapacity(jobs, end || ymd(new Date())), vendorRows = {};";
+const vendorAnchorReplacement="  const reconciledJobsForVendor = jobs.filter(j => j.economicsStatus === 'Reconciled');\n  const vendorCapacityModel = buildVendorCapacity(jobs, end || ymd(new Date())), vendorRows = {};";
+if(!model.includes('const reconciledJobsForVendor =')){
+  if(!model.includes(vendorAnchor)) throw new Error('Vendor reconciliation anchor changed; refusing unsafe workflow patch.');
+  model=model.replace(vendorAnchor,vendorAnchorReplacement);
+}
+if(model.includes(oldVendorResult)) model=model.replace(oldVendorResult,newVendorResult);
+else if(!model.includes(newVendorResult)) throw new Error('Vendor final economics output changed; refusing unsafe workflow patch.');
+
 fs.writeFileSync(modelPath,model);
 
 const forensicTestPath='scripts/forensic-self-test.mjs';
@@ -30,4 +46,4 @@ if(tests.includes(oldPendingWo)) tests=tests.replace(oldPendingWo,newPendingWo);
 else if(!tests.includes(newPendingWo)) throw new Error('Pending-WO regression changed; refusing unsafe workflow patch.');
 fs.writeFileSync(forensicTestPath,tests);
 
-console.log('Workflow truth applied: approved vendor WO required for assignment; explicit Blu-not-Blu2 source wins.');
+console.log('Workflow truth applied: approved vendor WO required for assignment; explicit Blu-not-Blu2 source wins; vendor revenue attributed by reconciled scope.');
