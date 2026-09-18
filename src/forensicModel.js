@@ -10,7 +10,7 @@ const prepayRx = /paid in advance|before work started|prepayment|paid up front|d
 const correctiveDepositRx = /reimbursement received from franklin homes|settling the misrouted|franklin repaid|correcting the misrouted|reimburse(?:d|ment).*from franklin/i;
 const postCloseNewScopeRx = /need (?:a couple|some|more).*done|more things done|new (?:work|scope)|additional (?:work|scope)|send me a list of everything you need done/i;
 const approvalRx = /\bapproved\b|\byes please\b|go ahead|customer (?:said|approved)|owner (?:said|approved)|called .* told him|send .* invoice|collect \$|pay .* \$/i;
-const structuredPmRx = /^\s*(?:notes?\s*[:=-]?\s*)?(?:pm|property manager)\s*[:=-]?\s*\S+/im;
+const structuredPmRx = /^\s*[-*•]?\s*(?:notes?\s*[:=-]?\s*)?(?:pm|property manager)\s*[:=-]?\s*\S+/im;
 const TOL = 0.02;
 const TZ = 'America/Chicago';
 
@@ -141,7 +141,7 @@ function sourceIdentity(job, jobComments, commentsById) {
   for (const n of knownPMs) if (new RegExp(`\\b${n}(?=\\b|\\d)|${n}(?=316\\b)`, 'i').test(pmLine)) { pm = n; break; }
   if (pm === 'Unattributed' && pmLine) {
     const stop = new Set(['with','rentals','rental','property','manager','management','notes','note','this','that','conf','confirmed','customer','owner','pmi','investments','investment','homes','home','one','sent','send','be']);
-    const stripped = pmLine.replace(/^(?:\s*notes?\s*[:=-]?\s*)?(?:pm|property manager)\s*[:=-]?/i, ' ').replace(/\b(?:316|blu\s*2|blu2|blu|sb investments|sb|pmi|jn investments|jn)\b/ig, ' ').replace(/\d+/g, ' ').replace(/[^a-z]+/ig, ' ').trim();
+    const stripped = pmLine.replace(/^\s*[-*•]?\s*(?:notes?\s*[:=-]?\s*)?(?:pm|property manager)\s*[:=-]?/i, ' ').replace(/\b(?:316|blu\s*2|blu2|blu|sb investments|sb|pmi|jn investments|jn)\b/ig, ' ').replace(/\d+/g, ' ').replace(/[^a-z]+/ig, ' ').trim();
     const candidate = stripped.split(/\s+/).find(x => x.length >= 2 && !stop.has(x.toLowerCase()));
     if (candidate) pm = titleCase(candidate);
   }
@@ -267,6 +267,14 @@ function hasInformalApproval(narrative, item) {
   if (!keywords.length) return true;
   return keywords.some(k => new RegExp(`\\b${k.slice(0, Math.max(5, k.length - 2))}`, 'i').test(narrative));
 }
+// A line item's own name/description can carry its own approval record, e.g.
+// "Roof Repair (Change Order — approved 09/16)". Treat a clear approved-plus-date
+// note on the item itself as real evidence, same as an approval found in the job
+// thread — no formal Change Order document required on top of it.
+const itemApprovalNoteRx = /\bapproved\b/i;
+function hasItemApprovalNote(item) {
+  return itemApprovalNoteRx.test(`${item?.name || ''} ${item?.description || ''}`);
+}
 
 export function buildModel(data, start, end) {
   const commentsById = Object.fromEntries((data.comments || []).map(c => [c.id, c]));
@@ -295,14 +303,14 @@ export function buildModel(data, start, end) {
   // stage unclear) — not that money is missing. They never drive the red/yellow Trust
   // Status badge; they're surfaced separately as Housekeeping so a real $ mismatch never
   // gets buried under routine paperwork noise.
-  const HOUSEKEEPING_CODES = new Set(['PM_UNATTRIBUTED', 'MULTIPLE_APPROVED_BASE_ORDERS', 'PAID_SCOPE_RATIFIED', 'WEAK_SCOPE_MATCH', 'COST_OVER_COMMITMENT', 'UNCOMMITTED_COST', 'POST_CLOSE_NEW_SCOPE', 'OPERATIONAL_STAGE_REVIEW']);
+  const HOUSEKEEPING_CODES = new Set(['PM_UNATTRIBUTED', 'PAID_SCOPE_RATIFIED', 'WEAK_SCOPE_MATCH', 'COST_OVER_COMMITMENT', 'UNCOMMITTED_COST', 'POST_CLOSE_NEW_SCOPE', 'OPERATIONAL_STAGE_REVIEW']);
   const push = (job, severity, code, detail, extra = {}) => exceptions.push({ job: job?.name || 'System', severity: (severity !== 'Info' && HOUSEKEEPING_CODES.has(code)) ? 'Housekeeping' : severity, code, detail, ...extra });
 
   for (const x of Object.values(by)) {
     const approved = x.orders.filter(d => d.status === 'approved'), pending = x.orders.filter(d => d.status === 'pending');
     const approvedBase = approved.filter(d => !isChange(d)), approvedChanges = approved.filter(isChange), pendingChanges = pending.filter(isChange);
     const pendingNew = pending.filter(d => !isChange(d)).sort((a, b) => new Date(eventDate(a)) - new Date(eventDate(b))).at(-1) || null;
-    if (approvedBase.length > 1) push(x.job, 'Review', 'MULTIPLE_APPROVED_BASE_ORDERS', `${approvedBase.length} approved non-change-order proposals exist; verify which revisions comprise the contract.`);
+    if (approvedBase.length > 1) push(x.job, 'Info', 'MULTIPLE_APPROVED_BASE_ORDERS', `${approvedBase.length} approved non-change-order proposals exist; both are approved so trusted as real scope.`);
     const baseApproval = approvedBase.sort((a, b) => new Date(eventDate(a)) - new Date(eventDate(b)))[0] || null;
     const baseDocs = x.orders.filter(d => !isChange(d)).sort((a, b) => new Date(eventDate(a)) - new Date(eventDate(b))), latestBase = baseDocs.at(-1) || null;
     const narrative = `${x.job.description || ''} ${x.comments.map(c => c.message || '').join(' ')} ${x.logs.map(l => l.notes || '').join(' ')}`;
@@ -321,6 +329,7 @@ export function buildModel(data, start, end) {
     }
 
     const contractByKey = {}, billedByKey = {}, actualByKey = {}, commitByKey = {}, vendorCommitByKey = {}, vendorActualByKey = {}, billedMeta = {};
+    const actualNotedKeys = new Set();
     let billedPass = 0, passCost = 0, feeCost = 0, customerRefundCost = 0;
     const refundEvents = [];
     const weakContract = new Map(), weakBilled = new Map(), weakActual = new Map(), weakCommit = new Map();
@@ -333,7 +342,7 @@ export function buildModel(data, start, end) {
       const paid = Number(d.balance || 0) <= TOL && Number(d.amountPaid || 0) >= Number(d.priceWithTax || 0) - TOL;
       for (const e of entries(d, 'revenue')) {
         if (e.pass) billedPass += e.amount;
-        else { add(billedByKey, e.key, e.amount); recordWeak(weakBilled, e, d); (billedMeta[e.key] ||= []).push({ doc: d, item: e.item, paid, informal: hasInformalApproval(narrative, e.item) }); }
+        else { add(billedByKey, e.key, e.amount); recordWeak(weakBilled, e, d); (billedMeta[e.key] ||= []).push({ doc: d, item: e.item, paid, informal: hasInformalApproval(narrative, e.item), itemNoted: hasItemApprovalNote(e.item) }); }
       }
     }
     for (const d of x.vendorOrders) for (const e of entries(d, 'cost')) { if (e.pass) continue; add(commitByKey, e.key, e.amount); recordWeak(weakCommit, e, d); const vn = d.account?.name || 'Unknown'; vendorCommitByKey[vn] ||= {}; add(vendorCommitByKey[vn], e.key, e.amount); }
@@ -362,6 +371,7 @@ export function buildModel(data, start, end) {
       for (const e of billEntries) {
         if (e.pass) { passCost += e.amount; continue; }
         if (customerRefund) { customerRefundCost += e.amount; continue; }
+        if (hasItemApprovalNote(e.item)) actualNotedKeys.add(e.key);
         add(actualByKey, e.key, e.amount); recordWeak(weakActual, e, d); const vn = d.account?.name || 'Unknown'; vendorActualByKey[vn] ||= {}; add(vendorActualByKey[vn], e.key, e.amount);
       }
       if (customerRefund) refundEvents.push({ date: d.issueDate || d.createdAt, amount: Number(d.cost || 0), reason, account: d.account?.name || 'Customer', document: d.fullName });
@@ -371,18 +381,20 @@ export function buildModel(data, start, end) {
     for (const k of allWeakKeys) { const groups = [weakContract.get(k) || [], weakBilled.get(k) || [], weakActual.get(k) || [], weakCommit.get(k) || []]; const distinctDocs = new Set(groups.flat().map(y => y.docId)); if (distinctDocs.size > 1) push(x.job, 'Review', 'WEAK_SCOPE_MATCH', `${k} is being reconciled by name rather than a shared JobTread cost-item ID across ${distinctDocs.size} documents.`); }
     const ratifiedKeys = new Set();
     for (const [k, billed] of Object.entries(billedByKey)) if (billed > (contractByKey[k] || 0) + TOL) {
-      const meta = billedMeta[k] || [], informal = meta.some(m => m.informal), paid = meta.length && meta.every(m => m.paid);
+      const meta = billedMeta[k] || [], informal = meta.some(m => m.informal), itemNoted = meta.some(m => m.itemNoted), paid = meta.length && meta.every(m => m.paid);
       if (informal) { ratifiedKeys.add(k); push(x.job, 'Info', 'MESSAGE_APPROVED_SCOPE', `${k}: added scope was supported by job-thread approval evidence; billed ${money(billed)}.`); }
+      else if (itemNoted) { ratifiedKeys.add(k); push(x.job, 'Info', 'ITEM_NOTED_APPROVED_SCOPE', `${k}: the line item's own note records an approval date; billed ${money(billed)}.`); }
       else if (paid) { ratifiedKeys.add(k); push(x.job, 'Review', 'PAID_SCOPE_RATIFIED', `${k}: ${money(billed)} was billed and fully paid, but no matching formal customer-order line exists. Preserve the revenue and flag the documentation gap.`); }
       else push(x.job, 'Critical', 'BILLED_UNCONTRACTED_SCOPE', `${k}: billed ${money(billed)} vs approved ${money(contractByKey[k] || 0)}.`);
     }
     for (const [k, actual] of Object.entries(actualByKey)) {
       const committed = commitByKey[k] || 0;
+      const trusted = ratifiedKeys.has(k) || (billedMeta[k] || []).some(m => m.informal) || actualNotedKeys.has(k);
       if (actual > committed + TOL) {
-        if (ratifiedKeys.has(k) || (billedMeta[k] || []).some(m => m.informal)) push(x.job, 'Info', 'INFORMAL_VENDOR_SCOPE', `${k}: incurred ${money(actual)} without a matching formal work-order line, but the related customer scope is approved/ratified in the thread/payment trail.`);
+        if (trusted) push(x.job, 'Info', 'INFORMAL_VENDOR_SCOPE', `${k}: incurred ${money(actual)} without a matching formal work-order line, but is approved per the thread, payment trail, or the line item's own note.`);
         else push(x.job, 'Review', 'COST_OVER_COMMITMENT', `${k}: incurred ${money(actual)} vs work-order commitment ${money(committed)}.`);
       }
-      if (committed <= TOL && !ratifiedKeys.has(k) && !(billedMeta[k] || []).some(m => m.informal)) push(x.job, 'Review', 'UNCOMMITTED_COST', `${k}: incurred ${money(actual)} without a matching valid vendor work order.`);
+      if (committed <= TOL && !trusted) push(x.job, 'Review', 'UNCOMMITTED_COST', `${k}: incurred ${money(actual)} without a matching valid vendor work order.`);
     }
     if (approvedChanges.some(d => Number(d.priceWithTax || 0) < -TOL)) push(x.job, 'Info', 'NEGATIVE_CHANGE_ORDER', 'Approved negative change order/credit reduces contract value and is retained in the audit trail.');
 

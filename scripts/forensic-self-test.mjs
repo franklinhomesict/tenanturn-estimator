@@ -60,7 +60,7 @@ const run=(d,a='2026-08-01',b='2026-09-30')=>buildForensicModel(d,a,b);
 { const d=empty(),j=job('17','Closed But Active',{closedOn:'2026-09-01T12:00:00Z'});d.jobs=[j];d.logs=[{id:'l17',date:'2026-09-03',notes:'Crew working today',job:{id:j.id}}];const m=run(d);assert.ok(m.critical.some(e=>e.code==='ACTIVE_AFTER_JOB_CLOSED')); }
 
 // 18. Multiple approved non-change proposals are review, not silently treated as one revision chain.
-{ const d=empty(),j=job('18','Multiple Bases');d.jobs=[j];d.docs=[doc('o181','customerOrder','approved',j,1000,{closedAt:'2026-08-01T12:00:00Z'}),doc('o182','customerOrder','approved',j,1200,{closedAt:'2026-08-02T12:00:00Z'})];const m=run(d);assert.ok(m.housekeeping.some(e=>e.code==='MULTIPLE_APPROVED_BASE_ORDERS')); }
+{ const d=empty(),j=job('18','Multiple Bases');d.jobs=[j];d.docs=[doc('o181','customerOrder','approved',j,1000,{closedAt:'2026-08-01T12:00:00Z'}),doc('o182','customerOrder','approved',j,1200,{closedAt:'2026-08-02T12:00:00Z'})];const m=run(d);assert.ok(m.info.some(e=>e.code==='MULTIPLE_APPROVED_BASE_ORDERS')); }
 
 // 19. Brandon/Blu pinned scope can authorize Ops without inventing accounting approval.
 { const d=empty(),j=job('19','Blu Start',{description:'org comment blu19'});d.jobs=[j];d.comments=[{id:'blu19',createdAt:'2026-09-01T12:00:00Z',isPinned:true,message:'Notes\nPm blu2 Brandon\nUtilities yes\nLockbox 1415\nScope',job:null}];const m=run(d);assert.equal(m.jobs[0].src.operationallyAuthorized,true);assert.equal(m.jobs[0].baseApproval,null);assert.equal(m.jobs[0].stage,'Backlog'); }

@@ -51,7 +51,13 @@ export default function ForensicDashboard(){
  const reviewSummary=uniqueReviewItems.slice(0,3).map(x=>x.job).join(' · ')+(uniqueReviewItems.length>3?` · +${uniqueReviewItems.length-3} more`:'' );
  const housekeepingCount=m.housekeepingCount||0;
  const plural=(n,s,p)=>`${n} ${n===1?s:p}`;
- const statusSummary=[m.critical.length?plural(m.critical.length,'real $ mismatch','real $ mismatches'):'',m.review.length?plural(m.review.length,'cash item needs review','cash items need review'):'',housekeepingCount?`${plural(housekeepingCount,'paperwork gap','paperwork gaps')}, no missing money`:''].filter(Boolean).join(' · ');
+ const CODE_LABEL={BILLED_UNCONTRACTED_SCOPE:'billed without approval',INVOICE_TOTAL_MISMATCH:"invoice total doesn't tie out",INVOICE_PAYMENT_MISMATCH:"payment doesn't match invoice",INVOICE_BALANCE_MISMATCH:"balance doesn't match invoice",BILL_PAYMENT_MISMATCH:'vendor bill payment mismatch',POSSIBLE_DUPLICATE_FINANCIAL:'possible duplicate charge',PAYMENT_ARITHMETIC:"payment math doesn't add up",CASH_MISROUTE:'cash sent to wrong account',RETURNED_PAYMENT:'payment bounced/reversed',CASH_DESTINATION_UNVERIFIED:"can't verify cash arrived",UNAPPLIED_CASH:'payment not yet applied',ACTIVE_AFTER_JOB_CLOSED:'work logged after job closed',PM_UNATTRIBUTED:'no PM tagged',MULTIPLE_APPROVED_BASE_ORDERS:'two approved proposals',PAID_SCOPE_RATIFIED:'paid, no signed order',WEAK_SCOPE_MATCH:'matched by name not ID',COST_OVER_COMMITMENT:'cost over work order',UNCOMMITTED_COST:'cost with no work order',POST_CLOSE_NEW_SCOPE:'new work after close',OPERATIONAL_STAGE_REVIEW:'stage unclear'};
+ const codeLabel=e=>CODE_LABEL[e.code]||e.code.replace(/_/g,' ').toLowerCase();
+ const moneyItems=[...m.critical,...m.review];
+ const moneyLine=moneyItems.slice(0,4).map(e=>`${e.job}: ${codeLabel(e)}`).join(' · ')+(moneyItems.length>4?` · +${moneyItems.length-4} more`:'');
+ const houseGroups={};for(const e of m.housekeeping||[]){const label=codeLabel(e);houseGroups[label]=(houseGroups[label]||0)+1}
+ const houseLine=Object.entries(houseGroups).map(([label,n])=>`${label} ×${n}`).join(' · ');
+ const statusSummary=[moneyLine,houseLine?`no missing money — ${houseLine}`:''].filter(Boolean).join(' · ');
  const isBrandonOwned=j=>effectivePM(j)==='Brandon'&&['Blu','Blu 2','SB Investments','Brandon-owned'].includes(effectiveSource(j));
  const projectedDraftAddOn=j=>{if(!isBrandonOwned(j))return 0;const drafts=jobDocs(j).filter(d=>d.type==='customerInvoice'&&d.status==='draft'),remaining=Math.max(vendorCommittedLine(j)-vendorActualLine(j),0);return sum(drafts,d=>{const r=docLine(d,businessLine,'revenue'),c=docLine(d,businessLine,'cost');return r>.02&&c>.02&&Math.abs(c-remaining)<=.02?r:0})};
  const projectedRevenue=j=>approvedCustomerLine(j)+projectedDraftAddOn(j);
