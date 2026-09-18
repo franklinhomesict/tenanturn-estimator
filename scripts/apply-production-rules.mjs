@@ -4,7 +4,7 @@ const dashboardPath='src/ForensicDashboard.jsx';
 const modelPath='src/forensicModel.js';
 
 let dashboard=fs.readFileSync(dashboardPath,'utf8');
-const importNeedle="import {buildForensicModel,eventBusinessDate,money,normalize,pct,productionRevenue,rangeFor,sum,ymd} from './forensicModel';";
+const importNeedle="import {buildForensicModel,eventBusinessDate,eventDate,inRange,money,normalize,pct,productionRevenue,rangeFor,sum,ymd} from './forensicModel';";
 const importReplacement=`${importNeedle}\nimport {classifyBusinessLine,classifyDocumentBusinessLine,isPassThroughItem,isFeeItem} from './businessLineRules';`;
 if(!dashboard.includes("from './businessLineRules'")){
   if(!dashboard.includes(importNeedle))throw new Error('Dashboard forensicModel import changed; refusing unsafe production patch.');
