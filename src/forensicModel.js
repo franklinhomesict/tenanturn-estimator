@@ -207,7 +207,10 @@ function cashInClass(p) {
   const t = paymentText(p);
   if (isCorrectiveDeposit(p)) return 'confirmed';
   if (/net (?:deposit|deposited|received)|\bdeposited\b|\bedeposit\b|mobile deposit|check[^.]{0,80}deposited|funded[^.]{0,100}(?:tenanturn|6268|1294)|received[^.]{0,80}(?:tenanturn|6268|1294)/i.test(t)) return 'confirmed';
-  if (/appfolio|instant pay|^instant\b/i.test(t) && /paid|payment|reimburse|instant|initiated/i.test(t)) return 'directed';
+  // AppFolio payment-initiated language is trusted as confirmed cash: TenanTurn always
+  // records the payment against the actual invoice when AppFolio shows it, so that
+  // linkage is the real evidence — no separate bank confirmation required.
+  if (/appfolio|instant pay|^instant\b/i.test(t) && /paid|payment|reimburse|instant|initiated/i.test(t)) return 'confirmed';
   if (/\bcheck\b|meritrust|businesspro|1294|6268|tenanturn/i.test(t)) return 'confirmed';
   return 'unverified';
 }
