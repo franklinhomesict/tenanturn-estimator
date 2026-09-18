@@ -152,6 +152,7 @@ function sourceIdentity(job, jobComments, commentsById) {
   if (!job?.closedOn && (pm === 'Melinda' || /taken over for Melinda|Melinda (?:has )?(?:left|quit)|replaced Melinda/i.test(allNarrative))) pm = 'Ben';
   if (pm === 'Unattributed' && (workSource === 'Blu / Blu 2' || workSource === 'SB Investments')) pm = 'Brandon';
   const operationallyAuthorized = !!c && pm === 'Brandon' && (workSource === 'Blu / Blu 2' || workSource === 'SB Investments');
+  if (billingCustomer === '1439 Homes' && (pm === 'Unattributed' || pm === billingCustomer)) pm = 'Brad';
   return { pm, workSource, billingCustomer, sourceCommentId: c?.id || null, sourceText: text, operationallyAuthorized };
 }
 function isWholeDoneText(text) {
@@ -319,6 +320,10 @@ export function buildModel(data, start, end) {
     const narrative = `${x.job.description || ''} ${x.comments.map(c => c.message || '').join(' ')} ${x.logs.map(l => l.notes || '').join(' ')}`;
     const lossEvidence = lossRx.test(narrative), trueLoss = !baseApproval && latestBase?.status === 'denied' && lossEvidence, outcomeReview = !baseApproval && latestBase?.status === 'denied' && !lossEvidence;
     const src = sourceIdentity(x.job, x.comments, commentsById), ev = operationalEvidence(x.job, x.comments, x.logs);
+    // A vendor bill that's actually been paid is stronger proof the work happened than any
+    // status comment — don't leave a job showing "Assigned, Not Started" just because nobody
+    // typed an update, when the money already proves it's done.
+    if (x.vendorBills.some(d => Number(d.amountPaid || 0) > TOL)) { ev.started = true; ev.done = true; }
     if (/316/i.test(x.job.location?.account?.name || '') && src.pm === 'Unattributed') push(x.job, x.job.closedOn ? 'Info' : 'Review', 'PM_UNATTRIBUTED', '316 job has no defensible current PM attribution.');
 
     if (x.job.closedOn && ev.latest && new Date(ev.latest.at) > new Date(x.job.closedOn) && ev.latest.type === 'active') {
