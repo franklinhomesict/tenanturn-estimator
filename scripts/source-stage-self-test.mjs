@@ -29,8 +29,10 @@ const run=d=>buildForensicModel(d,'2026-09-01','2026-09-30');
   const m=run(d),x=m.jobs[0];assert.equal(x.scheduledAssignment,true);assert.equal(x.stage,'Assigned / Not Started');assert.equal(Object.keys(x.remainingCommitByVendor||{}).length,0);
 }
 {
+  // A pending (sent, not yet approved) vendor work order still counts as the vendor
+  // being assigned — reverted 09/18/26 per Ian.
   const d=baseData(),j=job('pendingWO','302 Briarwood - Roof','Lucas Schroeder');d.jobs=[j];d.docs=[order('o6',j),wo('wo6',j,600,'pending')];
-  const m=run(d),x=m.jobs[0];assert.equal(x.stage,'Backlog');
+  const m=run(d),x=m.jobs[0];assert.equal(x.stage,'Assigned / Not Started');
 }
 {
   const d=baseData(),j=job('bluWO','1055 S Roosevelt - Make Ready','Blu 2');d.jobs=[j];d.docs=[order('o7',j),wo('wo7',j)];

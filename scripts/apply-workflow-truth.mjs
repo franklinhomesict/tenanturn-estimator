@@ -3,10 +3,11 @@ import fs from 'node:fs';
 const modelPath='src/forensicModel.js';
 let model=fs.readFileSync(modelPath,'utf8');
 
-const oldVendorOrders="  const vendorOrders = docs.filter(d => d.type === 'vendorOrder' && validMoneyStatus(d.status));";
-const newVendorOrders="  const vendorOrders = docs.filter(d => d.type === 'vendorOrder' && d.status === 'approved');";
-if(model.includes(oldVendorOrders)) model=model.replace(oldVendorOrders,newVendorOrders);
-else if(!model.includes(newVendorOrders)) throw new Error('Vendor-order status rule changed; refusing unsafe workflow patch.');
+// Reverted 09/18/26 per Ian: a sent-but-still-pending vendor work order counts as the
+// vendor being assigned. Requiring formal 'approved' status before that was hiding real
+// assignments (e.g. 1301 N Dellrose - Plumbing showed 'Waiting to Assign' despite an
+// actual work order already sent). vendorOrders keeps forensicModel.js's original
+// validMoneyStatus (pending or approved) filter untouched.
 
 const sourceAnchor="  if (!job?.closedOn && (pm === 'Melinda' || /taken over for Melinda|Melinda (?:has )?(?:left|quit)|replaced Melinda/i.test(allNarrative))) pm = 'Ben';";
 const sourceOverride="  if (/\\bblu\\b[^.\\n]{0,50}\\bnot\\s+blu\\s*2\\b/i.test(allNarrative)) workSource = 'Blu';\n"+sourceAnchor;
@@ -73,12 +74,9 @@ if(ownerStart>=0){
 if(api.includes("id: 'owner-pm-1847-s-gold'")) throw new Error('Legacy 1847 owner override still present after patch.');
 fs.writeFileSync(apiPath,api);
 
-const forensicTestPath='scripts/forensic-self-test.mjs';
-let tests=fs.readFileSync(forensicTestPath,'utf8');
-const oldPendingWo="// 23. Bare scope verbs such as Demo/Painting are not proof work started.\n{ const d=empty(),j=job('23','Heritage 111');d.jobs=[j];const p=item('p23','Make Ready',1481,925),v={...p,price:0,priceWithTax:0,cost:925};d.docs=[doc('o23','customerOrder','approved',j,1481,{closedAt:'2026-08-20T12:00:00Z',costItems:{nodes:[p]}}),doc('wo23','vendorOrder','pending',j,925,{costItems:{nodes:[v]}})];d.comments=[{id:'c23',createdAt:'2026-08-06T12:00:00Z',message:'Scope:\\n- Demo loose lay $51\\n- Painting walls $272\\n- Install one blind $10',job:{id:j.id}}];const m=run(d);assert.equal(m.jobs[0].stage,'Assigned / Not Started'); }";
-const newPendingWo="// 23. Bare scope verbs are not proof work started, and a pending vendor WO is still Backlog.\n{ const d=empty(),j=job('23','Heritage 111');d.jobs=[j];const p=item('p23','Make Ready',1481,925),v={...p,price:0,priceWithTax:0,cost:925};d.docs=[doc('o23','customerOrder','approved',j,1481,{closedAt:'2026-08-20T12:00:00Z',costItems:{nodes:[p]}}),doc('wo23','vendorOrder','pending',j,925,{costItems:{nodes:[v]}})];d.comments=[{id:'c23',createdAt:'2026-08-06T12:00:00Z',message:'Scope:\\n- Demo loose lay $51\\n- Painting walls $272\\n- Install one blind $10',job:{id:j.id}}];const m=run(d);assert.equal(m.jobs[0].stage,'Backlog'); }";
-if(tests.includes(oldPendingWo)) tests=tests.replace(oldPendingWo,newPendingWo);
-else if(!tests.includes(newPendingWo)) throw new Error('Pending-WO regression changed; refusing unsafe workflow patch.');
-fs.writeFileSync(forensicTestPath,tests);
+// Pending-vendor-WO-still-Backlog patch removed 09/18/26 alongside the vendorOrders
+// revert above — a pending work order counts as assigned again, so test #23's original
+// 'Assigned / Not Started' expectation (already in forensic-self-test.mjs) is correct
+// as-is and no longer needs rewriting here.
 
-console.log('Workflow truth applied: approved vendor WO required for assignment; explicit Blu-not-Blu2 source wins; PMI named approvals enrich PM; vendor revenue attributed by reconciled scope; manual overrides transparent and expiring.');
+console.log('Workflow truth applied: sent-or-approved vendor WO counts as assigned; explicit Blu-not-Blu2 source wins; PMI named approvals enrich PM; vendor revenue attributed by reconciled scope; manual overrides transparent and expiring.');
