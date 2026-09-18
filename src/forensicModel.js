@@ -291,7 +291,12 @@ export function buildModel(data, start, end) {
     add(dpByDoc, dp.document?.id, dp.amount);
   }
   const jobs = [], exceptions = [];
-  const push = (job, severity, code, detail, extra = {}) => exceptions.push({ job: job?.name || 'System', severity, code, detail, ...extra });
+  // Codes below mean a box wasn't checked (no PM tagged, no formal order on file, job
+  // stage unclear) — not that money is missing. They never drive the red/yellow Trust
+  // Status badge; they're surfaced separately as Housekeeping so a real $ mismatch never
+  // gets buried under routine paperwork noise.
+  const HOUSEKEEPING_CODES = new Set(['PM_UNATTRIBUTED', 'MULTIPLE_APPROVED_BASE_ORDERS', 'PAID_SCOPE_RATIFIED', 'WEAK_SCOPE_MATCH', 'COST_OVER_COMMITMENT', 'UNCOMMITTED_COST', 'POST_CLOSE_NEW_SCOPE', 'OPERATIONAL_STAGE_REVIEW']);
+  const push = (job, severity, code, detail, extra = {}) => exceptions.push({ job: job?.name || 'System', severity: (severity !== 'Info' && HOUSEKEEPING_CODES.has(code)) ? 'Housekeeping' : severity, code, detail, ...extra });
 
   for (const x of Object.values(by)) {
     const approved = x.orders.filter(d => d.status === 'approved'), pending = x.orders.filter(d => d.status === 'pending');
@@ -406,6 +411,8 @@ export function buildModel(data, start, end) {
     jobs.push({ ...x, src, ev, baseApproval, latestBase, lossEvidence, approvedChanges, pendingChanges, pendingNew, trueLoss, outcomeReview, contractedProduction, billedProduction, billedPass, passCost, actualProductionCost, feeCost, customerRefundCost, refundEvents, unbilledContracted, remainingCommitByVendor, vendorActualByKey, billedByKey, stage, ar, cashAP, profit, margin, economicsStatus, contractByKey, actualByKey });
   }
 
+  for (const j of jobs) if (j.stage === 'Review' && !exceptions.some(e => e.job === j.job.name && (e.severity === 'Critical' || e.severity === 'Review'))) push(j.job, 'Housekeeping', 'OPERATIONAL_STAGE_REVIEW', 'Operational evidence is insufficient to place this active job confidently; review assignment, completion, or vendor evidence.');
+
   for (const d of deniedFinancials) push(d.job, 'Info', 'DENIED_FINANCIAL_EXCLUDED', `${d.fullName} is denied audit history and excluded from all totals.`);
   const payments = data.payments || [];
   for (const p of payments) {
@@ -449,12 +456,13 @@ export function buildModel(data, start, end) {
   const vendors = Object.values(vendorRows).map(r => { const cap = vendorCapacityModel[r.vendor] || null, weekly = cap?.rolling8WeeklyCost || 0, gp = r.revenue - r.actualCost; return { name: r.vendor, openJobs: [...r.jobs].filter(id => current.some(j => j.job.id === id)).length, remainingCost: r.remainingCommit, attributedRevenue: r.revenue, actualCost: r.actualCost, gp, margin: r.revenue ? 100 * gp / r.revenue : 0, rolling8WeeklyCost: weekly, lifetimeWeeklyCost: cap?.lifetimeWeeklyCost || 0, capacityConfidence: cap?.confidence || 'Low', capacitySampleJobs: cap?.sampleJobs8 || 0, weeks: weekly > 0 ? r.remainingCommit / weekly : null, read: weekly > 0 ? `${cap.confidence} confidence` : 'Learning' }; }).sort((a, b) => b.actualCost - a.actualCost);
   const pmap = {}; for (const j of jobs) { const name = j.src.pm || 'Unattributed'; pmap[name] ||= { name, approvals: 0, approved: 0, pending: 0, lifetimeBilled: 0, reconciledGP: 0 }; if (j.baseApproval && inRange(eventDate(j.baseApproval), start, end)) { pmap[name].approvals++; pmap[name].approved += productionRevenue(j.baseApproval); } if (j.pendingNew) pmap[name].pending++; pmap[name].lifetimeBilled += j.billedProduction; if (j.economicsStatus === 'Reconciled') pmap[name].reconciledGP += j.profit; }
   const pms = Object.values(pmap).map(p => ({ ...p, margin: p.lifetimeBilled ? 100 * p.reconciledGP / p.lifetimeBilled : 0 })).sort((a, b) => b.approved - a.approved);
-  const critical = exceptions.filter(e => e.severity === 'Critical'), review = exceptions.filter(e => e.severity === 'Review'), info = exceptions.filter(e => e.severity === 'Info');
+  const critical = exceptions.filter(e => e.severity === 'Critical'), review = exceptions.filter(e => e.severity === 'Review'), housekeeping = exceptions.filter(e => e.severity === 'Housekeeping'), info = exceptions.filter(e => e.severity === 'Info');
   const reconciledJobs = jobs.filter(j => j.economicsStatus === 'Reconciled'), reconciledGP = sum(reconciledJobs, j => j.profit), provisionalGP = sum(jobs.filter(j => j.economicsStatus === 'Provisional'), j => j.profit);
   const customerPaymentsApplied = sum((data.documentPayments || []).filter(dp => dp.document?.type === 'customerInvoice' && dp.payment?.type === 'credit' && inRange(dp.payment?.paidAt, start, end) && !isReturnedEvent(dp.payment)), dp => dp.amount);
   const refunds = jobs.flatMap(j => (j.refundEvents || []).map(r => ({ job: j.job.name, ...r })));
-  const result = { jobs, exceptions: exceptions.sort((a, b) => a.severity === b.severity ? 0 : a.severity === 'Critical' ? -1 : b.severity === 'Critical' ? 1 : a.severity === 'Review' ? -1 : 1), trust: critical.length ? 'BLOCKED' : review.length ? 'REVIEW' : 'RECONCILED', critical, review, info, criticalCount: critical.length, reviewCount: review.length, infoCount: info.length, sales: { wins, losses, pendingNew, approvedChanges, pendingChanges, winRate, salesWon }, finance: { periodBilled, periodPass, verifiedCashIn, confirmedCashIn, cashDirected, verifiedCashOut, withheldFees, ar: sum(arDocs, d => d.balance), ap: sum(apDocs, d => d.balance), refunds }, ops: { current }, people: { vendors, vendorCapacityModel, pms }, wins, losses, pendingNew, approvedChanges, pendingChanges, winRate, salesWon, periodBilled, periodPass, verifiedCashIn, confirmedCashIn, cashDirected, verifiedCashOut, withheldFees, customerPaymentsApplied, netVerifiedCash: confirmedCashIn - verifiedCashOut, arDocs, apDocs, current, vendors, pms, refunds, reconciledJobs, reconciledGP, provisionalGP, outcomeReviews: jobs.filter(j => j.outcomeReview) };
-  result.audit = { critical: critical.length, review: review.length, info: info.length };
+  const severityRank = { Critical: 0, Review: 1, Housekeeping: 2, Info: 3 };
+  const result = { jobs, exceptions: exceptions.sort((a, b) => (severityRank[a.severity] ?? 4) - (severityRank[b.severity] ?? 4)), trust: critical.length ? 'BLOCKED' : review.length ? 'REVIEW' : 'RECONCILED', critical, review, housekeeping, info, criticalCount: critical.length, reviewCount: review.length, housekeepingCount: housekeeping.length, infoCount: info.length, sales: { wins, losses, pendingNew, approvedChanges, pendingChanges, winRate, salesWon }, finance: { periodBilled, periodPass, verifiedCashIn, confirmedCashIn, cashDirected, verifiedCashOut, withheldFees, ar: sum(arDocs, d => d.balance), ap: sum(apDocs, d => d.balance), refunds }, ops: { current }, people: { vendors, vendorCapacityModel, pms }, wins, losses, pendingNew, approvedChanges, pendingChanges, winRate, salesWon, periodBilled, periodPass, verifiedCashIn, confirmedCashIn, cashDirected, verifiedCashOut, withheldFees, customerPaymentsApplied, netVerifiedCash: confirmedCashIn - verifiedCashOut, arDocs, apDocs, current, vendors, pms, refunds, reconciledJobs, reconciledGP, provisionalGP, outcomeReviews: jobs.filter(j => j.outcomeReview) };
+  result.audit = { critical: critical.length, review: review.length, housekeeping: housekeeping.length, info: info.length };
   result.cash = { in: confirmedCashIn, directed: cashDirected, out: verifiedCashOut, withheldFees };
   return result;
 }
