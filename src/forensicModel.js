@@ -429,7 +429,7 @@ export function buildModel(data, start, end) {
     const hasCritical = exceptions.some(e => e.job === x.job.name && e.severity === 'Critical');
     const commitmentGap = Math.max(0, sum(Object.values(commitByKey)) - actualProductionCost);
     const economicsStatus = open ? 'Provisional' : hasCritical ? 'Exception' : commitmentGap > TOL ? 'Cost incomplete' : 'Reconciled';
-    jobs.push({ ...x, src, ev, baseApproval, latestBase, lossEvidence, approvedChanges, pendingChanges, pendingNew, trueLoss, outcomeReview, contractedProduction, billedProduction, billedPass, passCost, actualProductionCost, feeCost, customerRefundCost, refundEvents, unbilledContracted, remainingCommitByVendor, vendorActualByKey, billedByKey, stage, ar, cashAP, profit, margin, economicsStatus, contractByKey, actualByKey });
+    jobs.push({ ...x, src, ev, baseApproval, latestBase, lossEvidence, approvedChanges, pendingChanges, pendingNew, trueLoss, outcomeReview, contractedProduction, billedProduction, billedPass, passCost, actualProductionCost, feeCost, customerRefundCost, refundEvents, unbilledContracted, remainingCommitByVendor, vendorActualByKey, billedByKey, stage, vendorOrderApproved: x.vendorOrders.some(d => d.status === 'approved'), ar, cashAP, profit, margin, economicsStatus, contractByKey, actualByKey });
   }
 
   for (const j of jobs) if (j.stage === 'Review' && !exceptions.some(e => e.job === j.job.name && (e.severity === 'Critical' || e.severity === 'Review'))) push(j.job, 'Housekeeping', 'OPERATIONAL_STAGE_REVIEW', 'Operational evidence is insufficient to place this active job confidently; review assignment, completion, or vendor evidence.');
